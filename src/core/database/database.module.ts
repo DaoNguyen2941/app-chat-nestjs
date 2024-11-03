@@ -3,7 +3,9 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 
 export const UseTypeOrmModule = TypeOrmModule.forRootAsync({
     imports: [ConfigModule],
-    useFactory: (configService: ConfigService) => ({
+    inject: [ConfigService],
+    useFactory: (configService: ConfigService) => (
+        {
         type: 'mysql',
         host: configService.get<string>('db.host'),
         port: configService.get<number>('db.port'),
@@ -11,8 +13,7 @@ export const UseTypeOrmModule = TypeOrmModule.forRootAsync({
         password: configService.get<string>('db.password'),
         database: configService.get<string>('db.database'),
         autoLoadEntities: true,
-        synchronize: true,
-        
-    }),
-    inject: [ConfigService],
+        synchronize: false,
+    }
+),
 })

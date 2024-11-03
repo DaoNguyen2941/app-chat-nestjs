@@ -10,10 +10,9 @@ import { JwtModule } from '@nestjs/jwt';
 import { jwtConstants } from './auth/constants';
 import { PassportModule } from '@nestjs/passport';
 import { JwtAuthGuard } from './auth/guard/jwt-auth.guard';
-import { MessageController } from './message/message.controller';
-import { MessageService } from './message/message.service';
-import { MessageModule } from './message/message.module';
+import { MessageController } from './chat/controller/message.controller';
 import { ChatModule } from './chat/chat.module';
+import { FriendModule } from './friend/friend.module';
 
 @Module({
   imports: [
@@ -32,8 +31,8 @@ import { ChatModule } from './chat/chat.module';
       secret: jwtConstants.secret,
       signOptions: { expiresIn: `${jwtConstants.expirationTimeDefault}s` },
     }),
-    MessageModule,
     ChatModule,
+    FriendModule,
   ],
   controllers: [MessageController],
   providers: [
@@ -41,7 +40,6 @@ import { ChatModule } from './chat/chat.module';
       provide: APP_GUARD,
       useClass: JwtAuthGuard,
     },
-    MessageService,
   ],
 })
 export class AppModule { }

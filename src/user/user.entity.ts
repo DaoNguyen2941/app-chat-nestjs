@@ -1,7 +1,7 @@
 import { Entity, Column } from 'typeorm';
 import { Exclude } from "class-transformer";
 
-import { BaseEntity } from 'src/common/base.entity';
+import { BaseEntity } from 'src/common/baseEntity';
 @Entity()
 export class Users extends BaseEntity {
   @Column({ type: "varchar", nullable: false, unique: true })

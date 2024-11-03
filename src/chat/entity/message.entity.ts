@@ -6,7 +6,7 @@ import {
   JoinColumn
    } from 'typeorm';
 import { Users } from 'src/user/user.entity'; 
-import { BaseEntity } from 'src/common/base.entity';
+import { BaseEntity } from 'src/common/baseEntity';
 import { Chat } from 'src/chat/chat.entity';
 @Entity()
 export class Message extends  BaseEntity {

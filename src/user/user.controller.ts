@@ -23,10 +23,10 @@ import { SkipAuth } from "src/common/decorate/skipAuth";
 import { MailerService } from 'src/mailer/mailer.service';
 import { ParamTokenGuard } from "./guard/analysisParam.guard";
 import JwtResetPasswordGuard from "./guard/jwt-resetPassword.guard";
-@Controller('/user')
+@Controller('user')
 export class UserController {
     constructor(
-        private userService: UserService,
+        private readonly userService: UserService,
         private readonly mailerService: MailerService,
     ) { }
 

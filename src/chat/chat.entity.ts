@@ -6,9 +6,9 @@ import {
       OneToMany
     } from 'typeorm';
 import { Exclude } from "class-transformer";
-import { BaseEntity } from 'src/common/base.entity';
+import { BaseEntity } from 'src/common/baseEntity';
 import { Users } from 'src/user/user.entity';
-import { Message } from 'src/message/message.entity';
+import { Message } from 'src/chat/entity/message.entity';
 
 @Entity()
 export class Chat extends BaseEntity{

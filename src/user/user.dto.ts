@@ -7,6 +7,7 @@ export class BasicUserDataDto
 {
     @Expose()
     @IsString()
+    @IsNotEmpty()
     id: string;
   
     @Expose()
@@ -30,6 +31,7 @@ export class BasicUserDataDto
   }
 
   export class userDataDto extends OmitType(BasicUserDataDto, ['password', 'refresh_token',] as const) { };
+  export class typeUser extends PickType(BasicUserDataDto, ['id', 'account',] as const) {}
 
   export class searchAccountOrEmailDto {
     @Expose()
