@@ -1,14 +1,11 @@
-
+import { DataSource } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
-import { registerAs } from "@nestjs/config";
 import { config as dotenvConfig } from 'dotenv';
-import { DataSource, DataSourceOptions } from "typeorm";
-import { CreateDatabase1730436286298 } from './migrations/1730436286298-CreateDatabase';
 dotenvConfig({ path: '.env' });
 const configService = new ConfigService();
 
-const config = {
-  type: 'mysql',
+const dataSource = new DataSource({
+  type: 'mysql',  
   host: configService.get<string>('DATABASE_HOST'),
   port: configService.get<number>('DATABASE_PORT'),
   username: configService.get<string>('DATABASE_USER'),
@@ -18,10 +15,9 @@ const config = {
     "dist/**/*.entity{.ts,.js}",
     "dist/**/entity/*.entity{.ts,.js}",
   ],
-  migrations: [CreateDatabase1730436286298],
-  autoLoadEntities: true,
-  synchronize: false,
-}
+  migrations: [],
+  migrationsRun: false,
+  synchronize: false,  // Chỉ đặt thành true trong môi trường phát triển,nếu dùng migration thì không để true
+});
 
-export default registerAs('typeorm', () => config)
-export const connectionSource = new DataSource(config as DataSourceOptions);
+export default dataSource;
