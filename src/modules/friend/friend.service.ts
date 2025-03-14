@@ -3,9 +3,10 @@ import { Repository } from "typeorm";
 import { Friend } from './friend.entity';
 import { UserService } from 'src/modules/user/user.service';
 import { plainToInstance } from "class-transformer";
-import { FrienDataDto, ListFriendDto, FriendRequestDto, updateFriendDto } from "./friend.dto";
+import { FrienDataDto, ListFriendDto, FriendRequestDto, DataEventRequestDto } from "./friend.dto";
 import { EventEmitter2 } from '@nestjs/event-emitter';
-
+// import { PubService } from "src/redis/pubVsSub/service/pubService";
+import { EVENT_FRIEND } from "src/redis/redis.constants";
 import {
     Injectable,
     HttpException,
@@ -14,14 +15,19 @@ import {
     NotFoundException,
     BadRequestException
 } from "@nestjs/common";
-
+import { InjectQueue } from '@nestjs/bull';
+import { Queue } from 'bull';
+import { JOB_FRIEND } from "../queue/queue.constants";
 @Injectable()
 export class FriendService {
     constructor(
         @InjectRepository(Friend)
         private friendRepository: Repository<Friend>,
         private userService: UserService,
-        private readonly eventEmitter: EventEmitter2,
+        @InjectQueue(JOB_FRIEND.NAME) private readonly friendQueue: Queue,
+        // private readonly eventEmitter: EventEmitter2,
+        // private readonly pubService: PubService,
+
     ) { }
 
     async delete(friendsId: string) {
@@ -176,10 +182,42 @@ export class FriendService {
                 { sender: { id: senderId }, receiver: { id: receiverId } }
             ],
             select: {
-                id: true
+                id: true,
             }
         })
         return friend
+    }
+
+    async getFriendById(friendId: string) {
+        try {
+            const friend = await this.friendRepository.findOne({
+                where: { id: friendId },
+                relations: ["sender", "receiver"],
+                select: {
+                    id: true,
+                    status: true,
+                    sender: {
+                        id: true,
+                        account: true,
+                        avatar: true,
+                        name: true
+                    },
+                    receiver: {
+                        id: true,
+                        account: true,
+                        avatar: true,
+                        name: true
+                    }
+                }
+            })
+            if (!friend) {
+                throw new NotFoundException('Friend not found');
+            }
+            return friend
+
+        } catch (error) {
+            throw new InternalServerErrorException('Error fetching friend details');
+        }
     }
 
     async createFriend(userId: string, receiverId: string): Promise<FrienDataDto> {
@@ -198,11 +236,17 @@ export class FriendService {
                 receiver: { id: receiverId }
             })
             const friend = await this.friendRepository.save(newFriend);
-            this.eventEmitter.emit('friend-request', {
-                userId,
-                receiverId,
+            const dataFriend = await this.getFriendById(friend.id)
+            const reqFriend: FriendRequestDto = plainToInstance(FriendRequestDto, dataFriend, {
+                excludeExtraneousValues: true
             });
-
+            const dataReqFriend: DataEventRequestDto = {
+                reqFriend,
+                receiverId
+            }
+            this.friendQueue.add(JOB_FRIEND.FRIEND_REQUEST,dataReqFriend)
+            // this.pubService.publishEvent(EVENT_FRIEND.FRIEND_REQUEST, dataReqFriend)
+            // this.eventEmitter.emit('friend-request', dataReqFriend);
             return plainToInstance(FrienDataDto, friend, {
                 excludeExtraneousValues: true
             });

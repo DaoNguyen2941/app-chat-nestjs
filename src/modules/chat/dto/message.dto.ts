@@ -31,4 +31,10 @@ class BasicMessageDataDto {
 
 export class createMesagerDto extends PickType(BasicMessageDataDto, [`content`]) {}
 
-export class MessageData extends PickType(BasicMessageDataDto, ['id', 'author', 'content','created_At']) {};
+export class MessageDataDto extends PickType(BasicMessageDataDto, ['id', 'author', 'content','created_At']) {};
+
+export class OutgoingMessageDataDto {
+    messageData: MessageDataDto;
+    chatId:string;
+    receiverId:string
+}

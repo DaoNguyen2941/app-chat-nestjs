@@ -4,7 +4,7 @@ import { ServerOptions } from 'socket.io';
 import { Injectable, Logger } from '@nestjs/common';
 import { jwtConstants } from 'src/modules/auth/constants';
 import { IExtendUserInSocket, IUserInSocket } from 'src/common/Interface';
-import { ManagerClientSocketService } from 'src/redis/managerClient.service';
+import { ManagerClientSocketService } from 'src/redis/services/managerClient.service';
 import { JWTDecoded } from 'src/modules/auth/auth.dto';
 
 @Injectable()
@@ -51,18 +51,13 @@ export class WebSocketAdapter extends IoAdapter {
       });
 
       if (!payload) {
-        this.logger.warn(`Invalid token received from ${client.id}, disconnecting...`);
         client.disconnect();
         return;
       }
 
       client.user = payload;
       client.handshake.auth.token = newToken;
-
-      this.logger.log(`🔄 Token updated for user ${payload.sub}`);
-
     } catch (error) {
-      this.logger.error(`❌ Token update failed for client ${client.id}: ${error.message}`);
       client.disconnect();
     }
   }
@@ -70,7 +65,6 @@ export class WebSocketAdapter extends IoAdapter {
   async handleConnection(client: IExtendUserInSocket): Promise<void> {
     const token = client.handshake.auth?.token;
     if (!token) {
-      this.logger.warn(`Client ${client.id} missing token, disconnecting...`);
       client.disconnect();
       return;
     }
@@ -79,7 +73,6 @@ export class WebSocketAdapter extends IoAdapter {
         secret: jwtConstants.secret
       });
       if (!payload) {
-        this.logger.warn(`Client ${client.id} provided invalid token`);
         client.disconnect();
         return;
       }
@@ -91,10 +84,8 @@ export class WebSocketAdapter extends IoAdapter {
       }
 
       await this.SocketClientService.addClientSocket(payload.sub, value);
-      this.logger.log(`User ${payload.sub} connected with socket ${client.id}`);
       client.join(payload.sub)
     } catch (error) {
-      this.logger.error(`❌ Token verification failed for client ${client.id}: ${error.message}`);
       client.disconnect();
     }
   }
@@ -102,11 +93,9 @@ export class WebSocketAdapter extends IoAdapter {
   handleDisconnect(client: IExtendUserInSocket): void {
     try {
       if (!client.user || !client.user.sub) {
-        this.logger.warn(`Client ${client.id} disconnected without user data`);
         return;
       }
       this.SocketClientService.removeClientSocket(client.user.sub);
-      this.logger.log(`❌ User ${client.user.sub} disconnected, socket: ${client.id}`);
     } catch (error) {
       this.logger.error(`❌ Error handling disconnect for socket ${client.id}: ${error.message}`);
     }

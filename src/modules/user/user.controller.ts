@@ -21,7 +21,6 @@ import {
 } from "./user.dto";
 import { plainToInstance } from "class-transformer";
 import { SkipAuth } from "src/common/decorate/skipAuth";
-import { MailerService } from 'src/mailer/mailer.service';
 import { ParamTokenGuard } from "./guard/analysisParam.guard";
 import JwtResetPasswordGuard from "./guard/jwt-resetPassword.guard";
 import { IParamsKeyWord } from "src/common/Interface";
@@ -29,7 +28,6 @@ import { IParamsKeyWord } from "src/common/Interface";
 export class UserController {
     constructor(
         private readonly userService: UserService,
-        private readonly mailerService: MailerService,
     ) { }
 
     @Get(`/search/:keyword`)
@@ -81,7 +79,7 @@ export class UserController {
     @Get('/password/forgot-password/otp/:token')
     async getOTPForgotPassword(@Request() request: UserDataInReq) {
         const email = request.user.email
-        this.mailerService.sendEmailOTPChangePassword(email);
+        this.userService.sendEmailOTPChangePassword(email);
         return {
             message: `Đã gửi mã OTP đặt lại mật khẩu đến email ${email}`
         }

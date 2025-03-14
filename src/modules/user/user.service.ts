@@ -23,14 +23,34 @@ import { JWTPayload } from 'src/modules/auth/auth.dto';
 import { createCookie, } from 'src/common/utils';
 import { jwtConstants } from 'src/modules/auth/constants';
 import { SearchUserWithFriendStatusDto } from './user.dto';
+import { RedisCacheService } from 'src/redis/services/redisCache.service';
+import { InjectQueue } from '@nestjs/bull';
+import { Queue } from 'bull';
+import { generateOtp } from 'src/common/utils';
+
 @Injectable()
 export class UserService {
     constructor(
         @InjectRepository(Users)
         private usersRepository: Repository<Users>,
         private jwtService: JwtService,
-        @Inject(CACHE_MANAGER) private cacheManager: Cache
+        @InjectQueue('mail-queue') private readonly mailQueue: Queue,
+        private readonly redisCacheService: RedisCacheService,
     ) { }
+
+    async sendEmailOTPChangePassword(email: string) {
+        try {
+            const otp = await generateOtp(6);
+            const value = {
+                otp
+            }
+            await this.redisCacheService.setCache(`otp reset password ${email}`, value, 300);
+            await this.mailQueue.add('send-otp-retrieve-password', { to: email, otp });
+            return;
+        } catch (error) {
+            throw error
+        }
+    }
 
     async getUserDataById(userId: string): Promise<BasicUserDataDto> {
         try {
@@ -109,9 +129,9 @@ export class UserService {
             ])
             .getRawMany();
 
-            return plainToInstance(SearchUserWithFriendStatusDto, users, {
-                excludeExtraneousValues: true
-            });
+        return plainToInstance(SearchUserWithFriendStatusDto, users, {
+            excludeExtraneousValues: true
+        });
     }
 
 
@@ -127,7 +147,7 @@ export class UserService {
         }
     }
 
-    public createCookieResetPassword(userId: string, account: string,  avatar: string) {
+    public createCookieResetPassword(userId: string, account: string, avatar: string) {
         const payload: JWTPayload = { sub: userId, account: account, avatar: avatar };
         const token = this.jwtService.sign(payload);
         const cookie = createCookie('resetPassword', token, `/user/password/forgot-password/reset`, jwtConstants.expirationTimeDefault);
@@ -135,23 +155,38 @@ export class UserService {
     }
 
     public async validateOTPResetPassword(otp: string, email: string): Promise<boolean> {
-        const cacheOtp = await this.cacheManager.get(`otp-reset-password-${email}`);
-        if (cacheOtp !== otp) {
-            return false
-        }
-        if (cacheOtp === otp) {
-            await this.cacheManager.del(`otp-reset-password-${email}`)
-            return true
-        }
+        try {
+            const cacheOtp: { otp: string } | null = await this.redisCacheService.getCache(`otp reset password ${email}`);
+            if (cacheOtp?.otp !== otp) {
+                return false
+            }
+            if (cacheOtp.otp === otp) {
+                await this.redisCacheService.deleteCache(`otp reset password ${email}`)
+                return true
+            }
+            throw new HttpException(
+                {
+                    status: HttpStatus.INTERNAL_SERVER_ERROR,
+                    message: 'Đã xảy ra lỗi không mong muốn.',
+                    error: 'SERVER_ERROR',
+                },
+                HttpStatus.INTERNAL_SERVER_ERROR
+            );
+        } catch (error) {
+            if (error instanceof HttpException) {
+                throw error;
+            } else {
+                throw new HttpException(
+                    {
+                        status: HttpStatus.INTERNAL_SERVER_ERROR,
+                        message: 'Đã xảy ra lỗi không mong muốn trong quá trình xác thực OTP.',
+                        error: 'SERVER_ERROR',
+                    },
+                    HttpStatus.INTERNAL_SERVER_ERROR
+                );
+            }
 
-        throw new HttpException(
-            {
-                status: HttpStatus.INTERNAL_SERVER_ERROR,
-                message: 'Đã xảy ra lỗi không mong muốn.',
-                error: 'SERVER_ERROR',
-            },
-            HttpStatus.INTERNAL_SERVER_ERROR
-        );
+        }
     }
 
     public async handleUpdatepasswordUser(userId: string, password: string, passwordNew: string) {
@@ -255,7 +290,7 @@ export class UserService {
     }
 
     async verifyRefreshToken(refreshToken: string, userId: string): Promise<userDataDto | null> {
-        const user = await this.getById(userId);        
+        const user = await this.getById(userId);
         if (!user.refresh_token) {
             throw new UnauthorizedException();
         }
@@ -311,7 +346,7 @@ export class UserService {
                     email: true,
                     password: true,
                     refresh_token: true,
-                    avatar:true
+                    avatar: true
                 }
             });
 

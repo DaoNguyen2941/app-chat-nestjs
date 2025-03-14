@@ -1,0 +1,20 @@
+import { Process, Processor } from '@nestjs/bull';
+import { Job } from 'bull';
+import { Logger } from '@nestjs/common';
+import { ChatGateway } from 'src/gateways/chat.gateway';
+import { OutgoingMessageDataDto } from 'src/modules/chat/dto/message.dto';
+import { JOB_CHAT } from '../queue.constants';
+
+@Processor(JOB_CHAT.NAME)
+export class ChatProcessor {
+    private readonly logger = new Logger(ChatProcessor.name);
+    constructor(
+        private readonly chatGateway: ChatGateway,
+    ) { }
+
+    @Process(JOB_CHAT.NEW_MESSAGE)
+    async handleSendMessage(job: Job<OutgoingMessageDataDto>) {
+        return await this.chatGateway.handleEventSenderMessage(job.data)
+    }
+
+}

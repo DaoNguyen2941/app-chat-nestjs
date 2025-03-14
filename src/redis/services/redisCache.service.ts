@@ -3,17 +3,8 @@ import { InjectRedis } from '@nestjs-modules/ioredis';
 import { Redis } from 'ioredis';
 
 @Injectable()
-export class RedisService {
+export class RedisCacheService {
   constructor(@InjectRedis() private readonly redis: Redis) {}
-
-    /** 
-   * Lưu cache vào Redis 
-   * @param hashKey - Tên của hash (tương tự như tên bảng trong database).
-   * @param value - Dữ liệu cần lưu
-   */
-  async useHset(hashKey:string, value: object) {
-    await this.redis.hset(hashKey, value)
-  }
 
   /** 
    * Lưu cache vào Redis 

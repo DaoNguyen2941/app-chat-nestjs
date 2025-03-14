@@ -14,7 +14,7 @@ import { plainToInstance } from 'class-transformer';
 import { Chats } from '../dto/chat.dto';
 import { userDataDto } from 'src/modules/user/user.dto';
 import { ChatDataDto, listChatDto, ResCreateChatDto } from '../dto/chat.dto';
-import { MessageData } from '../dto/message.dto';
+import { MessageDataDto } from '../dto/message.dto';
 
 @Injectable()
 export class ChatService {
@@ -135,7 +135,7 @@ export class ChatService {
 
     async createChat(senderId: string, receiverId: string) {
         try {            
-             const user =  await this.usersService.getById(receiverId);        
+             await this.usersService.getById(receiverId);        
             const checkChatExists = await this.checkExists(senderId, receiverId)
             if (checkChatExists) {
                 return checkChatExists

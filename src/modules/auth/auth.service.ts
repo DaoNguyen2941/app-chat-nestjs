@@ -3,27 +3,23 @@ import { UserService } from 'src/modules/user/user.service';
 import * as bcrypt from 'bcrypt';
 import { plainToInstance } from "class-transformer";
 import { RegisterDto, RegisterResponseDto, ConfirmOtpDto, JWTPayload } from './auth.dto';
-import { Cache } from 'cache-manager';
-import { CACHE_MANAGER } from '@nestjs/cache-manager';
-import { MailerService } from 'src/mailer/mailer.service';
 import { JwtService } from '@nestjs/jwt';
 import { jwtConstants } from './constants';
 import { BasicUserDataDto, userDataDto } from 'src/modules/user/user.dto';
 import { hashData } from 'src/common/utils';
 import { createCookie, } from 'src/common/utils';
 import { generateOtp } from 'src/common/utils';
-import { RedisService } from 'src/redis/redis.service';
+import { RedisCacheService } from 'src/redis/services/redisCache.service';
 import { InjectQueue } from '@nestjs/bull';
 import { Queue } from 'bull';
-
+import { JOB_Mail } from '../queue/queue.constants';
 @Injectable()
 export class AuthService {
     constructor(
         private readonly usersService: UserService,
-        @InjectQueue('mail-queue') private readonly mailQueue: Queue,
-        private readonly redisService: RedisService,
+        @InjectQueue(JOB_Mail.NAME) private readonly mailQueue: Queue,
+        private readonly redisCacheService: RedisCacheService,
         private jwtService: JwtService,
-        // @Inject(CACHE_MANAGER) private cacheManager: Cache
     ) { }
 
 
@@ -71,9 +67,9 @@ export class AuthService {
             const value = {
                 otp
             }
-            await this.redisService.setCache(`otp ${email}`, value, 300);
+            await this.redisCacheService.setCache(`otp ${email}`, value, 300);
             await this.mailQueue.add('send-otp-email-verification', { to: email, otp });
-            return otp
+            return;
         } catch (error) {
             throw error
         }
@@ -81,8 +77,8 @@ export class AuthService {
 
     async verifyOTP2(dataOTP: ConfirmOtpDto): Promise<RegisterResponseDto> {
         try {
-            const userNew: RegisterDto | null = await this.redisService.getCache(`newAccount ${dataOTP.email}`)
-            const userOtp: {otp:string} | null = await this.redisService.getCache(`otp ${dataOTP.email}`)            
+            const userNew: RegisterDto | null = await this.redisCacheService.getCache(`newAccount ${dataOTP.email}`)
+            const userOtp: {otp:string} | null = await this.redisCacheService.getCache(`otp ${dataOTP.email}`)            
             if (userNew === null) {
                 throw new HttpException({
                     status: HttpStatus.UNPROCESSABLE_ENTITY,
@@ -105,8 +101,8 @@ export class AuthService {
 
             if (dataOTP.OTP === userOtp.otp) {
                 const user = await this.usersService.create(userNew)
-                await this.redisService.deleteCache(`newAccount ${dataOTP.email}`)
-                await this.redisService.deleteCache(`otp ${dataOTP.email}`)
+                await this.redisCacheService.deleteCache(`newAccount ${dataOTP.email}`)
+                await this.redisCacheService.deleteCache(`otp ${dataOTP.email}`)
 
                 return plainToInstance(RegisterResponseDto, user, {
                     excludeExtraneousValues: true,
@@ -142,7 +138,7 @@ export class AuthService {
         try {
             const dataAccont = await this.usersService.getByAccount(userData.account)
             const dataEmail = await this.usersService.getByEmail(userData.email)
-            const cacheUserData = await this.redisService.getCache(`newAccount ${userData.email}`)
+            const cacheUserData = await this.redisCacheService.getCache(`newAccount ${userData.email}`)
             if (dataEmail || cacheUserData) {
                 throw new HttpException({
                     status: HttpStatus.UNPROCESSABLE_ENTITY,
@@ -164,7 +160,7 @@ export class AuthService {
             }
             userData.password = await hashData(userData.password)
             // lưu tạm user vào cache (10p)
-            await this.redisService.setCache(`newAccount ${userData.email}`, userData, 600)
+            await this.redisCacheService.setCache(`newAccount ${userData.email}`, userData, 600)
 
             return plainToInstance(RegisterResponseDto, userData, {
                 excludeExtraneousValues: true,

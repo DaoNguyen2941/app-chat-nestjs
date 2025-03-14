@@ -4,7 +4,7 @@ import { Expose, Transform, Type } from "class-transformer";
 import { IsString, IsEmail, IsNotEmpty, IsObject, IsArray, IsNumber,  } from 'class-validator';
 import { any } from 'joi';
 import { typeUser } from 'src/modules/user/user.dto';
-import { MessageData } from './message.dto'
+import { MessageDataDto } from './message.dto'
 
 
 export class CreateChatDto2 {
@@ -41,8 +41,8 @@ export class ChatData {
 
     @Expose()
     @IsArray()
-    @Type(() => MessageData)  // Bổ sung Type cho mảng
-    message: MessageData[];
+    @Type(() => MessageDataDto)  // Bổ sung Type cho mảng
+    message: MessageDataDto[];
 }
 
 export class ChatDataDto extends PickType(ChatData, ['id', 'message'] as const ) {

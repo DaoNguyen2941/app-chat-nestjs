@@ -16,6 +16,7 @@ import { ChatDataDto, CreateChatDto2, ResCreateChatDto, listChatDto } from '../d
 import { createMesagerDto } from '../dto/message.dto';
 import { CustomUserInRequest } from 'src/modules/auth/auth.dto';
 import { UserConversationService } from '../service/userConversation.service';
+
 @Controller('chat')
 export class ChatController {
     constructor(
@@ -31,7 +32,7 @@ export class ChatController {
         const chat = await this.chatService.createChat(user.id, receiverId)
         const userConversation = await this.conversationService.findAndCreate(user.id, chat.id);
         const data = await this.chatService.getchatById(chat.id, user.id)
-        return data
+        return data;
     }
 
     @Get('list')

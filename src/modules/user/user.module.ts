@@ -4,7 +4,7 @@ import { UserService } from './user.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Users } from './entity/user.entity';
 import { Peer } from './entity/peer.entity';
-import { MailerModule } from 'src/mailer/mailer.module';
+import { QueueModule } from '../queue/queue.module';
 import { JwtResetPasswordStrategy } from './strategy/jwtResetPassword.strategy';
 @Module({
   imports: [
@@ -12,7 +12,7 @@ import { JwtResetPasswordStrategy } from './strategy/jwtResetPassword.strategy';
       Users,
        Peer,
       ]),
-    MailerModule
+    QueueModule
   ],
   controllers: [UserController],
   providers: [

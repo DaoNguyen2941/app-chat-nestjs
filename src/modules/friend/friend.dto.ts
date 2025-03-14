@@ -73,3 +73,8 @@ export class FriendRequestDto extends PickType(
     @Expose()
     user: typeUser;
 }
+
+export class DataEventRequestDto {
+    reqFriend: FriendRequestDto;
+    receiverId: string
+}

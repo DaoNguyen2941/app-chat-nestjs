@@ -6,13 +6,13 @@ import {
     OnGatewayConnection,
     OnGatewayDisconnect
 } from "@nestjs/websockets";
-import { ManagerClientSocketService } from "../redis/managerClient.service";
+import { ManagerClientSocketService } from "../redis/services/managerClient.service";
 import { WsAuthGuard } from 'src/modules/auth/guard/wsAuth.guard';
 import { UseGuards } from "@nestjs/common";
 import { Socket, Server } from "socket.io";
 import { OnEvent } from "@nestjs/event-emitter";
 import { IExtendUserInSocket, IUserInSocket } from "src/common/Interface";
-
+import { DataEventRequestDto } from "src/modules/friend/friend.dto";
 @WebSocketGateway()
 export class FriendGateway {
     @WebSocketServer() server: Server;
@@ -25,12 +25,12 @@ export class FriendGateway {
     //     // Xử lý message
     // }
 
-    @OnEvent('friend-request')
-    async handleEventSendRequestFriend(payload: {userId: string, receiverId: string}) {
-        const { userId, receiverId } = payload;
+    // @OnEvent('friend-request')
+    async handleEventSendRequestFriend(payload: DataEventRequestDto) {
+        const { receiverId, reqFriend } = payload;
         const receiverSocket: IUserInSocket | null = await this.managerClientSocket.getSocketInfo(receiverId);
         if (receiverSocket) {
-            this.server.to(receiverId).emit('Notifications-from-friends', 'có yêu cầu kết bạn mới')
+            this.server.to(receiverId).emit('Notifications-from-friends', reqFriend)
         }
     }
 

@@ -5,7 +5,7 @@ import { ValidationPipe } from '@nestjs/common';
 import * as cookieParser from 'cookie-parser'
 import { WebSocketAdapter } from './gateways/adapters';
 import { INestApplication } from '@nestjs/common';
-import { ManagerClientSocketService } from './redis/managerClient.service';
+import { ManagerClientSocketService } from './redis/services/managerClient.service';
 async function bootstrap() {
 
   const app = await NestFactory.create(AppModule);
