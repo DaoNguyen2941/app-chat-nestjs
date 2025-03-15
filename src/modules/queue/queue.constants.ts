@@ -20,5 +20,6 @@ export const JOB_Mail = {
 
 export const JOB_USER = {
     NAME: 'user-queue',
-    UPDATE_LAST_SEEN: 'update-lastSeen'
+    UPDATE_LAST_SEEN: 'update-lastSeen',
+    DELETE_LAST_SEEN: 'delete-lastSeen',
 }

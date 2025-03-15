@@ -11,11 +11,10 @@ import { JwtAuthGuard } from './modules/auth/guard/jwt-auth.guard';
 import { ChatModule } from './modules/chat/chat.module';
 import { FriendModule } from './modules/friend/friend.module';
 // import { EventEmitterModule } from '@nestjs/event-emitter';
-import { ManagerClientSocketService } from 'src/redis/services/managerClient.service'; // Import các services cần thiết
 import { JwtService } from '@nestjs/jwt';
 import { GatewaysModule } from './gateways/gateway.module';
-import { WebSocketAdapter } from './gateways/adapters';
 import { QueueModule } from './modules/queue/queue.module';
+
 @Module({
   imports: [
     UseTypeOrmModule,
@@ -43,7 +42,6 @@ import { QueueModule } from './modules/queue/queue.module';
     QueueModule,
   ],
   providers: [
-    WebSocketAdapter,
     JwtService,
     {
       provide: APP_GUARD,

@@ -21,9 +21,12 @@ export class FriendGateway {
 
     // @OnEvent('friend-request')
     async handleEventSendRequestFriend(payload: DataEventRequestDto) {
+        console.log('send event req friend');
+        
         const { receiverId, reqFriend } = payload;
         const receiverSocket: IUserInSocket | null = await this.managerClientSocket.getSocketInfo(receiverId);
         if (receiverSocket) {
+            console.log('send event req friend user');
             this.server.to(receiverId).emit('Notifications-from-friends', reqFriend)
         }
     }

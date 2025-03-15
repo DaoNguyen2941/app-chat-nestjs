@@ -4,6 +4,10 @@ import { ConfigService } from '@nestjs/config';
 import { ValidationPipe } from '@nestjs/common';
 import * as cookieParser from 'cookie-parser'
 import { WebSocketAdapter } from './gateways/adapters';
+import { ManagerClientSocketService } from './redis/services/managerClient.service';
+import { JwtService } from '@nestjs/jwt';
+import { Queue } from 'bull';
+import { JOB_USER } from './modules/queue/queue.constants';
 async function bootstrap() {
 
   const app = await NestFactory.create(AppModule);
@@ -12,8 +16,13 @@ async function bootstrap() {
     credentials: true,
   });
   const configService = app.get(ConfigService);
-  const webSocketAdapter = app.get(WebSocketAdapter); // Lấy instance từ DI
-  app.useWebSocketAdapter(webSocketAdapter);  app.use(cookieParser());
+  const socketClientService = app.get(ManagerClientSocketService);
+const jwtService = app.get(JwtService);
+const userQueue = app.get<Queue>(`BullQueue_${JOB_USER.NAME}`);
+const wsAdapter = new WebSocketAdapter(socketClientService, jwtService, userQueue);
+
+app.useWebSocketAdapter(wsAdapter);
+  app.use(cookieParser());
   const PORT = configService.get('PORT') || 3001;
   app.useGlobalPipes(new ValidationPipe({
     // xóa bỏ thuộc tính ko xác định của req (không có trong dto)

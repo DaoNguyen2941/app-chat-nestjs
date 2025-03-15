@@ -14,13 +14,19 @@ export class UserProcessor {
     ) { }
 
     @Process(JOB_USER.UPDATE_LAST_SEEN)
-    async handleSendMessage(job: Job<{userId:string, time: Date}>) {
+    async handleUpdateLastSeen(job: Job<{userId:string, time: Date}>) {
         const {userId, time} = job.data
         const userStatus = await this.managerClientSocketService.UserStatus(userId);
         const dataLastSeen= await this.managerClientSocketService.getLastSeenClientSocket(userId)
         if (userStatus === 'offline' && !dataLastSeen ) {
             return await this.userService.setLastSeen(userId, time)
         }
+    }
+
+    @Process(JOB_USER.DELETE_LAST_SEEN)
+    async handleDeleteLastSeen(job: Job<{userId:string}>) {
+        const {userId} = job.data
+        return await this.userService.setLastSeen(userId, null);
     }
 
 }

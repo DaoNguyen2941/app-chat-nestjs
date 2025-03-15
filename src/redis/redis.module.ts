@@ -26,7 +26,7 @@ import { GatewaysModule } from 'src/gateways/gateway.module';
   ],
   providers: [
     RedisCacheService,
-
+    ManagerClientSocketService,
     {
       provide: ManagerClientSocketService,
       useClass: ManagerClientSocketService,

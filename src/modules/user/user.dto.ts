@@ -81,11 +81,11 @@ export class BasicUserDataDto
   export class SearchUserWithFriendStatusDto extends typeUser {
     @Expose()
     @Transform(({ obj }) => {
-        if (!obj.friendId) return null; // Nếu chưa có bạn bè, trả về null
+        if (!obj.friendId) return null; 
         return {
             id: obj.friendId,
-            status: obj.status, // Trạng thái kết bạn
-            senderId: obj.senderId // Ai là người gửi lời mời
+            status: obj.status, 
+            senderId: obj.senderId 
         };
     })
     statusFriend: { id: string; status: string; senderId: string } | null;

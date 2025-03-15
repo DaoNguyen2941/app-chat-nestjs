@@ -1,7 +1,7 @@
 
 import { OmitType, PickType, } from '@nestjs/mapped-types'
 import { Expose, Transform, Type,  } from "class-transformer";
-import { IsString, IsEmail, IsNotEmpty, IsObject, IsArray, IsNumber,IsEnum  } from 'class-validator';
+import { IsString, IsEmail, IsDate, IsArray, IsNumber,IsEnum  } from 'class-validator';
 import { typeUser } from 'src/modules/user/user.dto';
 import { MessageDataDto } from './message.dto'
 
@@ -43,7 +43,7 @@ export class ChatData {
 
     @Expose()
     @IsArray()
-    @Type(() => MessageDataDto)  // Bổ sung Type cho mảng
+    @Type(() => MessageDataDto) 
     message: MessageDataDto[];
 }
 
@@ -92,6 +92,9 @@ export class listChatDto {
     @Expose()
     @IsEnum(UserStatus)
     status: 'online' | 'offline';
+
+    @Expose()
+    lastSeen: Date | null
 
 }
 

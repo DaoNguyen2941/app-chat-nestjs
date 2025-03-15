@@ -16,8 +16,8 @@ export class RedisCacheService {
    * @param key - Khóa lưu cache
    * @param value - thuộc tính của value cần xóa
    */
-  async deleteHsetCache(key: string, value: string,) {
-    await this.redis.hdel(key, value)
+  async deleteHsetCache(key: string, value: string,): Promise<number> {
+    return await this.redis.hdel(key, value)
   }
     /** 
    * Lưu cache vào Redis 

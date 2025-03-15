@@ -50,7 +50,7 @@ export class UserService {
         }
     }
 
-    async setLastSeen(userId: string, time: Date) {
+    async setLastSeen(userId: string, time: Date | null) {
         try {
            return await this.usersRepository
             .createQueryBuilder()

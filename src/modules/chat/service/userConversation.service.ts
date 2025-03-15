@@ -97,10 +97,12 @@ export class UserConversationService {
                 "s.name",
                 "s.avatar",
                 "s.account",
+                "s.lastSeen",
                 "r.id",
                 "r.name",
                 "r.avatar",
                 "r.account",
+                "r.lastSeen",
             ])
             .getMany();
 
@@ -109,7 +111,18 @@ export class UserConversationService {
                 const data = plainToInstance(listChatDto, { ...c, currentUserId: userId }, {
                     excludeExtraneousValues: true
                 });
-                data.status = await this.managerClientSocketService.UserStatus(data.user.id);
+
+              const [lastSeenFromSocket, userStatus] = await Promise.all([
+                this.managerClientSocketService.getLastSeenClientSocket(data.user.id),
+                this.managerClientSocketService.UserStatus(data.user.id),
+            ]);
+console.log(userStatus);
+
+            data.status = userStatus;
+            data.lastSeen = lastSeenFromSocket || (
+                data.user.id === c.chat.sender.id ? c.chat.sender.lastSeen :
+                data.user.id === c.chat.receiver.id ? c.chat.receiver.lastSeen : null
+            );
                 return data
             })
         );

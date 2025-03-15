@@ -26,16 +26,23 @@ export class ManagerClientSocketService {
     await this.cacheService.setHsetCache(this.LAST_SEEN_PREFIX, value)
   }
 
-  async removieLastSeenClientSocket(userId:string,) {
-    await this.cacheService.deleteHsetCache(this.LAST_SEEN_PREFIX, userId)
+    /** 
+   * @returns dữ liệu đầu ra là số lượng cache bị xóa
+   */
+  async removieLastSeenClientSocket(userId:string,): Promise<number> {
+    return await this.cacheService.deleteHsetCache(this.LAST_SEEN_PREFIX, userId)
   }
   
-  async addClientSocket(userId: string, value: IUserInSocket): Promise<void> {
-    await this.cacheService.setCache(`${this.SESSION_PREFIX}${userId}`, value); 
+  async addClientSocket(userId: string, value: IUserInSocket): Promise<void> {    
+    console.log('add user');
+    
+     await this.cacheService.setCache(`${this.SESSION_PREFIX}${userId}`, value); 
   }
 
   async UserStatus(userId: string): Promise<UserStatus> {
-    const session = await this.cacheService.getCache(`${this.SESSION_PREFIX}${userId}`);
+    const session = await this.cacheService.getCache<IUserInSocket>(`${this.SESSION_PREFIX}${userId}`);
+    console.log(session);
+    
     return session ? UserStatus.online : UserStatus.offline // Nếu có session => online, nếu không => offline
   }
 

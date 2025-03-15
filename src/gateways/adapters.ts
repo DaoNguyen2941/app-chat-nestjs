@@ -9,6 +9,7 @@ import { JWTDecoded } from 'src/modules/auth/auth.dto';
 import { InjectQueue } from '@nestjs/bull';
 import { Queue } from 'bull';
 import { JOB_USER } from 'src/modules/queue/queue.constants';
+import { UserService } from 'src/modules/user/user.service';
 @Injectable()
 export class WebSocketAdapter extends IoAdapter {
   private readonly logger = new Logger(WebSocketAdapter.name);
@@ -18,9 +19,12 @@ export class WebSocketAdapter extends IoAdapter {
     private readonly jwtService: JwtService, 
     @InjectQueue(JOB_USER.NAME) private readonly userQueue: Queue, 
   ) {
+    console.log('WebSocketAdapter initialized')
     super();
   }
   createIOServer(port: number, options?: ServerOptions) {
+    console.log('create server socket post ' + port);
+    
     const server = super.createIOServer(port, {
       ...options,
       cors: {
@@ -65,6 +69,8 @@ export class WebSocketAdapter extends IoAdapter {
   }
 
   async handleConnection(client: IExtendUserInSocket): Promise<void> {
+    console.log(123);
+    
     const token = client.handshake.auth?.token;
     if (!token) {
       client.disconnect();
@@ -84,8 +90,13 @@ export class WebSocketAdapter extends IoAdapter {
         sockeId: client.id,
         user: payload
       }
-      await this.SocketClientService.removieLastSeenClientSocket(payload.sub)
-      await this.SocketClientService.addClientSocket(payload.sub, value);
+      const [newClient, removieLastSeen] = await Promise.all([
+        this.SocketClientService.addClientSocket(payload.sub, value),
+        this.SocketClientService.removieLastSeenClientSocket(payload.sub)
+      ])
+      if (removieLastSeen === 0) {
+        await this.userQueue.add(JOB_USER.DELETE_LAST_SEEN, {userId: client.id})
+      }
       client.join(payload.sub)
     } catch (error) {
       client.disconnect();
@@ -93,17 +104,18 @@ export class WebSocketAdapter extends IoAdapter {
   }
 
   async handleDisconnect(client: IExtendUserInSocket): Promise<void> {
+    
     try {
       if (!client.user || !client.user.sub) {
         return;
-
       }
+      console.log(`usser ${client.user.sub} disconnect`);
       const time = new Date();
       const value = {
         userId: client.user.sub,
         time: time
       }
-      await this.userQueue.add(JOB_USER.UPDATE_LAST_SEEN, value, { delay: 1000 * 60 * 30 })
+      await this.userQueue.add(JOB_USER.UPDATE_LAST_SEEN, value, { delay: 1000 * 60 * 1 })
       await this.SocketClientService.setLastSeenClientSocket(client.user.sub, time)
       await this.SocketClientService.removeClientSocket(client.user.sub);
     } catch (error) {

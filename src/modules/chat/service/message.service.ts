@@ -36,7 +36,11 @@ export class MessageService {
                 author: { id: userId }
             })
             const message = await this.messageRepository.save(newMessage);
+            console.log(message);
+            
             const messageData: MessageDataDto | null = await this.getMessageById(message.id)
+            console.log(messageData);
+            
             if (!messageData) {
                 throw new HttpException(
                     'Lỗi truy vấn cơ sở dữ liệu',
