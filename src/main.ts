@@ -15,9 +15,8 @@ async function bootstrap() {
   });
   const configService = app.get(ConfigService);
   const clientSocket = app.get(ManagerClientSocketService);
-
-  app.useWebSocketAdapter(new WebSocketAdapter(clientSocket, app));
-  app.use(cookieParser());
+  const webSocketAdapter = app.get(WebSocketAdapter); // Lấy instance từ DI
+  app.useWebSocketAdapter(webSocketAdapter);  app.use(cookieParser());
   const PORT = configService.get('PORT') || 3001;
   app.useGlobalPipes(new ValidationPipe({
     // xóa bỏ thuộc tính ko xác định của req (không có trong dto)

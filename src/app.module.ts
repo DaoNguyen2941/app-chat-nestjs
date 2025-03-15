@@ -14,6 +14,8 @@ import { FriendModule } from './modules/friend/friend.module';
 import { ManagerClientSocketService } from 'src/redis/services/managerClient.service'; // Import các services cần thiết
 import { JwtService } from '@nestjs/jwt';
 import { GatewaysModule } from './gateways/gateway.module';
+import { WebSocketAdapter } from './gateways/adapters';
+import { QueueModule } from './modules/queue/queue.module';
 @Module({
   imports: [
     UseTypeOrmModule,
@@ -23,6 +25,7 @@ import { GatewaysModule } from './gateways/gateway.module';
     //   ttl: 600,
     //   isGlobal: true
     // }),
+    QueueModule,
     AuthModule,
     UserModule,
     JwtModule.register({
@@ -35,7 +38,12 @@ import { GatewaysModule } from './gateways/gateway.module';
     GatewaysModule,
     // EventEmitterModule.forRoot()
   ],
+
+  exports: [
+    QueueModule,
+  ],
   providers: [
+    WebSocketAdapter,
     JwtService,
     {
       provide: APP_GUARD,

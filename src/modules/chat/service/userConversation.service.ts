@@ -9,12 +9,13 @@ import { Repository, QueryFailedError } from 'typeorm';
 import { UserConversation } from '../entity/userConversations.entity';
 import { listChatDto } from '../dto/chat.dto';
 import { plainToInstance } from "class-transformer";
-
+import { ManagerClientSocketService } from 'src/redis/services/managerClient.service';
 @Injectable()
 export class UserConversationService {
     constructor(
         @InjectRepository(UserConversation)
-        private readonly userConversationRepository: Repository<UserConversation>
+        private readonly userConversationRepository: Repository<UserConversation>,
+        private readonly managerClientSocketService: ManagerClientSocketService
     ) { }
 
     async UpdateUnreadMessages(chatId: string, userid: string) {
@@ -31,17 +32,17 @@ export class UserConversationService {
         const conversation = await this.userConversationRepository.findOne({
             where: { user: { id: userId }, chat: { id: chatId } }
         });
-        
+
         if (!conversation) {
             throw new NotFoundException('Cuộc trò chuyện không tồn tại');
         }
-    
+
         // Chỉ cập nhật cột `unreadCount`, không cần cập nhật toàn bộ bản ghi
         await this.userConversationRepository.update(conversation.id, { unreadCount: 0 });
-    
+
         return { message: "Đã đánh dấu tất cả tin nhắn là đã đọc" };
     }
-    
+
 
     async getOneByChatIdAndUserId(chatId: string, userId: string) {
         return await this.userConversationRepository.findOne({
@@ -104,9 +105,33 @@ export class UserConversationService {
             ])
             .getMany();
 
-        return plainToInstance(listChatDto, conversations.map(c => ({ ...c, currentUserId: userId })), {
-            excludeExtraneousValues: true
-        });
+        const dataConversation = await Promise.all(
+            conversations.map(async (c) => {
+                const data = plainToInstance(listChatDto, { ...c, currentUserId: userId }, {
+                    excludeExtraneousValues: true
+                });
+                data.status = await this.managerClientSocketService.UserStatus(data.user.id);
+                return data
+            })
+        );
+
+        return dataConversation;
     }
+
+    async getChatListAndOnlineStatus(userId: string) {
+        const conversations = await this.getListConversations(userId);
+        // const friendsWithStatus = await Promise.all(
+        //     friends.map(async (friend) => {
+        //       const isOnline = await this.socketService.isUserOnline(friend.id);
+        //       return {
+        //         id: friend.id,
+        //         username: friend.username,
+        //         email: friend.email,
+        //         isOnline, // true nếu online, false nếu offline
+        //       };
+        //     }),
+        //   );
+    }
+
 
 }

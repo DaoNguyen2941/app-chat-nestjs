@@ -6,17 +6,19 @@ import { jwtConstants } from 'src/modules/auth/constants';
 import { IExtendUserInSocket, IUserInSocket } from 'src/common/Interface';
 import { ManagerClientSocketService } from 'src/redis/services/managerClient.service';
 import { JWTDecoded } from 'src/modules/auth/auth.dto';
-
+import { InjectQueue } from '@nestjs/bull';
+import { Queue } from 'bull';
+import { JOB_USER } from 'src/modules/queue/queue.constants';
 @Injectable()
 export class WebSocketAdapter extends IoAdapter {
   private readonly logger = new Logger(WebSocketAdapter.name);
-  private readonly jwtService = new JwtService;
- 
+
   constructor(
     private readonly SocketClientService: ManagerClientSocketService,
-    private app: any
+    private readonly jwtService: JwtService, // Inject JwtService
+    @InjectQueue(JOB_USER.NAME) private readonly userQueue: Queue, // Inject queue vào đây
   ) {
-    super(app);
+    super();
   }
   createIOServer(port: number, options?: ServerOptions) {
     const server = super.createIOServer(port, {
@@ -82,7 +84,7 @@ export class WebSocketAdapter extends IoAdapter {
         sockeId: client.id,
         user: payload
       }
-
+      await this.SocketClientService.removieLastSeenClientSocket(payload.sub)
       await this.SocketClientService.addClientSocket(payload.sub, value);
       client.join(payload.sub)
     } catch (error) {
@@ -90,12 +92,20 @@ export class WebSocketAdapter extends IoAdapter {
     }
   }
 
-  handleDisconnect(client: IExtendUserInSocket): void {
+  async handleDisconnect(client: IExtendUserInSocket): Promise<void> {
     try {
       if (!client.user || !client.user.sub) {
         return;
+
       }
-      this.SocketClientService.removeClientSocket(client.user.sub);
+      const time = new Date();
+      const value = {
+        userId: client.user.sub,
+        time: time
+      }
+      await this.userQueue.add(JOB_USER.UPDATE_LAST_SEEN, value, { delay: 1000 * 60 * 30 })
+      await this.SocketClientService.setLastSeenClientSocket(client.user.sub, time)
+      await this.SocketClientService.removeClientSocket(client.user.sub);
     } catch (error) {
       this.logger.error(`❌ Error handling disconnect for socket ${client.id}: ${error.message}`);
     }

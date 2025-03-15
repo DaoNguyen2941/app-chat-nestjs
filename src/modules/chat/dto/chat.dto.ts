@@ -1,12 +1,14 @@
 
 import { OmitType, PickType, } from '@nestjs/mapped-types'
-import { Expose, Transform, Type } from "class-transformer";
-import { IsString, IsEmail, IsNotEmpty, IsObject, IsArray, IsNumber,  } from 'class-validator';
-import { any } from 'joi';
+import { Expose, Transform, Type,  } from "class-transformer";
+import { IsString, IsEmail, IsNotEmpty, IsObject, IsArray, IsNumber,IsEnum  } from 'class-validator';
 import { typeUser } from 'src/modules/user/user.dto';
 import { MessageDataDto } from './message.dto'
 
-
+export enum UserStatus {
+    online = 'online',
+    offline = 'offline'
+  }
 export class CreateChatDto2 {
     @Expose()
     @IsString()
@@ -85,6 +87,11 @@ export class listChatDto {
     @Transform(({ obj, value }) => {
         return obj.unreadCount
     })
-    unreadCount: number
+    unreadCount: number;
+
+    @Expose()
+    @IsEnum(UserStatus)
+    status: 'online' | 'offline';
+
 }
 

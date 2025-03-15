@@ -17,3 +17,8 @@ export const JOB_Mail = {
     SEND_OTP_EMAIL: 'send-otp-email-verification',
     SEND_OTP_PASSWORD: 'send-otp-retrieve-password'
 }
+
+export const JOB_USER = {
+    NAME: 'user-queue',
+    UPDATE_LAST_SEEN: 'update-lastSeen'
+}

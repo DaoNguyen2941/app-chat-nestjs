@@ -27,14 +27,14 @@ import { RedisCacheService } from 'src/redis/services/redisCache.service';
 import { InjectQueue } from '@nestjs/bull';
 import { Queue } from 'bull';
 import { generateOtp } from 'src/common/utils';
-
+import { JOB_Mail } from '../queue/queue.constants';
 @Injectable()
 export class UserService {
     constructor(
         @InjectRepository(Users)
         private usersRepository: Repository<Users>,
         private jwtService: JwtService,
-        @InjectQueue('mail-queue') private readonly mailQueue: Queue,
+        @InjectQueue(JOB_Mail.NAME) private readonly mailQueue: Queue,
         private readonly redisCacheService: RedisCacheService,
     ) { }
 
@@ -45,10 +45,23 @@ export class UserService {
                 otp
             }
             await this.redisCacheService.setCache(`otp reset password ${email}`, value, 300);
-            await this.mailQueue.add('send-otp-retrieve-password', { to: email, otp });
+            await this.mailQueue.add(JOB_Mail.SEND_OTP_PASSWORD, { to: email, otp });
             return;
         } catch (error) {
             throw error
+        }
+    }
+
+    async setLastSeen(userId: string, time: Date) {
+        try {
+           return await this.usersRepository
+            .createQueryBuilder()
+            .update(Users)
+            .set({ lastSeen: time })
+            .where("id = :userId", { userId })
+            .execute();            
+        } catch (error) {
+            console.error(`❌ Lỗi khi cập nhật lastSeen cho userId: ${userId}`, error);
         }
     }
 
