@@ -7,7 +7,6 @@ import { JOB_FRIEND } from '../queue.constants';
 
 @Processor(JOB_FRIEND.NAME)
 export class FriendProcessor {
-    private readonly logger = new Logger(FriendProcessor.name);
     constructor(
         private readonly friendGateway: FriendGateway,
     ) {}

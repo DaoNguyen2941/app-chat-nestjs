@@ -4,7 +4,6 @@ import { Injectable } from '@nestjs/common';
 import { jwtConstants } from '../constants';
 import { JWTDecoded } from '../auth.dto';
 import { Request } from 'express';
-import { userDataDto } from 'src/modules/user/user.dto';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy,'jwt') {

@@ -18,12 +18,6 @@ export class FriendGateway {
     @WebSocketServer() server: Server;
     constructor(private readonly managerClientSocket: ManagerClientSocketService) {}
 
-    // @UseGuards(WsAuthGuard)
-    // @SubscribeMessage('chatMessage')
-    // handleChatMessage(client: Socket, message: any) {
-    //     console.log('Received message:', message);
-    //     // Xử lý message
-    // }
 
     // @OnEvent('friend-request')
     async handleEventSendRequestFriend(payload: DataEventRequestDto) {

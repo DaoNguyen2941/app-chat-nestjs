@@ -17,8 +17,6 @@ import { QueryFailedError } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import { hashData } from 'src/common/utils';
 import { JwtService } from '@nestjs/jwt';
-import { Cache } from 'cache-manager';
-import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { JWTPayload } from 'src/modules/auth/auth.dto';
 import { createCookie, } from 'src/common/utils';
 import { jwtConstants } from 'src/modules/auth/constants';
@@ -132,12 +130,12 @@ export class UserService {
             )
             .where("user.account LIKE :keyword", { keyword: `%${keyword}%` })
             .select([
-                "user.id AS id", // 👈 Đảm bảo key đúng
+                "user.id AS id", 
                 "user.account AS account",
                 "user.name AS name",
                 "user.avatar AS avatar",
-                "f.status AS status", // Lấy trạng thái kết bạn
-                "f.senderId AS senderId", // Lấy senderId từ bảng friends
+                "f.status AS status", 
+                "f.senderId AS senderId", 
                 "f.id AS friendId"
             ])
             .getRawMany();

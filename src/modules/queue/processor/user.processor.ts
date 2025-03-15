@@ -7,7 +7,6 @@ import { ManagerClientSocketService } from 'src/redis/services/managerClient.ser
 
 @Processor(JOB_USER.NAME)
 export class UserProcessor {
-    private readonly logger = new Logger(UserProcessor.name);
     constructor(
         private readonly userService: UserService,
         private readonly managerClientSocketService: ManagerClientSocketService,

@@ -4,8 +4,6 @@ import { ConfigService } from '@nestjs/config';
 import { ValidationPipe } from '@nestjs/common';
 import * as cookieParser from 'cookie-parser'
 import { WebSocketAdapter } from './gateways/adapters';
-import { INestApplication } from '@nestjs/common';
-import { ManagerClientSocketService } from './redis/services/managerClient.service';
 async function bootstrap() {
 
   const app = await NestFactory.create(AppModule);
@@ -14,7 +12,6 @@ async function bootstrap() {
     credentials: true,
   });
   const configService = app.get(ConfigService);
-  const clientSocket = app.get(ManagerClientSocketService);
   const webSocketAdapter = app.get(WebSocketAdapter); // Lấy instance từ DI
   app.useWebSocketAdapter(webSocketAdapter);  app.use(cookieParser());
   const PORT = configService.get('PORT') || 3001;

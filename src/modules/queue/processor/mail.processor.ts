@@ -6,13 +6,11 @@ import { JOB_Mail } from '../queue.constants';
 
 @Processor(JOB_Mail.NAME)
 export class MailProcessor {
-  private readonly logger = new Logger(MailProcessor.name);
   constructor(private readonly mailerService: MailerService) {}
 
 @Process(JOB_Mail.SEND_OTP_EMAIL)
   async handleSendOTPEmailVerification(job: Job<{ to: string; otp: string }>) {
     const { to, otp } = job.data;
-    this.logger.log(`📨 Đang gửi OTP tới ${to}...`);
     try {
       await this.mailerService.sendMail({
         to,
@@ -31,7 +29,6 @@ export class MailProcessor {
   @Process(JOB_Mail.SEND_OTP_PASSWORD)
   async handleSendOTPRetrievePassword(job: Job<{ to: string; otp: string }>) {
     const { to, otp } = job.data;
-    this.logger.log(`📨 Đang gửi OTP tới ${to}...`);
     try {
       await this.mailerService.sendMail({
         to,
@@ -41,7 +38,6 @@ export class MailProcessor {
         <p>Mã OTP này có hiệu lực trong 5 phút. Không tria sẻ mã này với bất kỳ ai!</p>`,
       });
     } catch (error) {
-      this.logger.error(`❌ Gửi email OTP thất bại: ${error.message}`);
       throw error;
     }
   }

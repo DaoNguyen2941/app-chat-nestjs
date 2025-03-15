@@ -15,8 +15,8 @@ export class WebSocketAdapter extends IoAdapter {
 
   constructor(
     private readonly SocketClientService: ManagerClientSocketService,
-    private readonly jwtService: JwtService, // Inject JwtService
-    @InjectQueue(JOB_USER.NAME) private readonly userQueue: Queue, // Inject queue vào đây
+    private readonly jwtService: JwtService, 
+    @InjectQueue(JOB_USER.NAME) private readonly userQueue: Queue, 
   ) {
     super();
   }

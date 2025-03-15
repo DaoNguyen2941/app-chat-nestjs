@@ -11,7 +11,7 @@ import { WsAuthGuard } from 'src/modules/auth/guard/wsAuth.guard';
 import { UseGuards } from "@nestjs/common";
 import { Socket, Server } from "socket.io";
 import { OnEvent } from "@nestjs/event-emitter";
-import { MessageDataDto, OutgoingMessageDataDto } from "src/modules/chat/dto/message.dto";
+import {  OutgoingMessageDataDto } from "src/modules/chat/dto/message.dto";
 import { IExtendUserInSocket, IUserInSocket } from "src/common/Interface";
 
 @WebSocketGateway()

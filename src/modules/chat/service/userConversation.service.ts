@@ -37,7 +37,6 @@ export class UserConversationService {
             throw new NotFoundException('Cuộc trò chuyện không tồn tại');
         }
 
-        // Chỉ cập nhật cột `unreadCount`, không cần cập nhật toàn bộ bản ghi
         await this.userConversationRepository.update(conversation.id, { unreadCount: 0 });
 
         return { message: "Đã đánh dấu tất cả tin nhắn là đã đọc" };
@@ -117,21 +116,4 @@ export class UserConversationService {
 
         return dataConversation;
     }
-
-    async getChatListAndOnlineStatus(userId: string) {
-        const conversations = await this.getListConversations(userId);
-        // const friendsWithStatus = await Promise.all(
-        //     friends.map(async (friend) => {
-        //       const isOnline = await this.socketService.isUserOnline(friend.id);
-        //       return {
-        //         id: friend.id,
-        //         username: friend.username,
-        //         email: friend.email,
-        //         isOnline, // true nếu online, false nếu offline
-        //       };
-        //     }),
-        //   );
-    }
-
-
 }
