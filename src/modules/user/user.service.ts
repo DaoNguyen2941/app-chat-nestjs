@@ -38,6 +38,19 @@ export class UserService {
         private readonly redisCacheService: RedisCacheService,
     ) { }
 
+    async setLastSeen(userId: string, time: Date | null) {
+        try {
+           return await this.usersRepository
+            .createQueryBuilder()
+            .update(Users)
+            .set({ lastSeen: time })
+            .where("id = :userId", { userId })
+            .execute();            
+        } catch (error) {
+            console.error(`❌ Lỗi khi cập nhật lastSeen cho userId: ${userId}`, error);
+        }
+    }
+
     async sendEmailOTPChangePassword(email: string) {
         try {
             const otp = await generateOtp(6);
