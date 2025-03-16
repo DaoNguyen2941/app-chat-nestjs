@@ -6,6 +6,10 @@ import { any } from 'joi';
 import { typeUser } from 'src/modules/user/user.dto';
 import { MessageDataDto } from './message.dto'
 
+export enum enumUserStatus {
+    online = 'online',
+    offline = 'offline'
+  }
 
 export class CreateChatDto2 {
     @Expose()
