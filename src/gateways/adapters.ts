@@ -6,6 +6,9 @@ import { jwtConstants } from 'src/modules/auth/constants';
 import { IExtendUserInSocket, IUserInSocket } from 'src/common/Interface';
 import { ManagerClientSocketService } from 'src/redis/services/managerClient.service';
 import { JWTDecoded } from 'src/modules/auth/auth.dto';
+import { InjectQueue } from '@nestjs/bull';
+import { Queue } from 'bull';
+import { JOB_USER } from 'src/modules/queue/queue.constants';
 
 @Injectable()
 export class WebSocketAdapter extends IoAdapter {
@@ -14,6 +17,7 @@ export class WebSocketAdapter extends IoAdapter {
 
   constructor(
     private readonly SocketClientService: ManagerClientSocketService,
+    @InjectQueue(JOB_USER.NAME) private readonly userQueue: Queue, 
     private app: any
   ) {
     super(app);
@@ -98,8 +102,15 @@ export class WebSocketAdapter extends IoAdapter {
       if (!client.user || !client.user.sub) {
         return;
       }
-      await this.SocketClientService.setLastSeenClientSocket(client.user.sub)
+      // userId:string, time: Date}
+      const time = new Date;
+      const value = {
+          userId: client.user.sub,
+          time: time
+      }
+      await this.SocketClientService.setLastSeenClientSocket(client.user.sub, time)
       await this.SocketClientService.removeClientSocket(client.user.sub);
+      await this.userQueue.add(JOB_USER.UPDATE_LAST_SEEN, value, { delay: 1000 * 60 * 1 })
     } catch (error) {
       this.logger.error(`❌ Error handling disconnect for socket ${client.id}: ${error.message}`);
     }

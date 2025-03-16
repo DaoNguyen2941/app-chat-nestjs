@@ -6,6 +6,12 @@ import * as cookieParser from 'cookie-parser'
 import { WebSocketAdapter } from './gateways/adapters';
 import { INestApplication } from '@nestjs/common';
 import { ManagerClientSocketService } from './redis/services/managerClient.service';
+import { Queue } from 'bull';
+import { JOB_USER } from './modules/queue/queue.constants';
+import { QueueModule } from './modules/queue/queue.module';
+import { getQueueToken } from '@nestjs/bull';
+
+
 async function bootstrap() {
 
   const app = await NestFactory.create(AppModule);
@@ -15,8 +21,10 @@ async function bootstrap() {
   });
   const configService = app.get(ConfigService);
   const clientSocket = app.get(ManagerClientSocketService);
+  // const userQueue = app.get<Queue>(JOB_USER.NAME)
+  const userQueue = app.select(QueueModule).get<Queue>(getQueueToken(JOB_USER.NAME));
 
-  app.useWebSocketAdapter(new WebSocketAdapter(clientSocket, app));
+  app.useWebSocketAdapter(new WebSocketAdapter(clientSocket, userQueue, app));
   app.use(cookieParser());
   const PORT = configService.get('PORT') || 3001;
   app.useGlobalPipes(new ValidationPipe({

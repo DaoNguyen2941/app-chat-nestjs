@@ -16,8 +16,7 @@ export class ManagerClientSocketService {
     return data
   }
 
-  async setLastSeenClientSocket(userId:string) {
-    const time = new Date
+  async setLastSeenClientSocket(userId:string, time: Date) {
     console.log('set hast last seen ' + userId);
     await this.cacheService.setCache(`${this.LAST_SEEN_PREFIX}${userId}`, time.toISOString())
   }

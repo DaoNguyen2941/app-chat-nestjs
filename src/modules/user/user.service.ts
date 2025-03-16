@@ -40,6 +40,8 @@ export class UserService {
 
     async setLastSeen(userId: string, time: Date | null) {
         try {
+            console.log('đang cập nhập last seen cho user');
+            
            return await this.usersRepository
             .createQueryBuilder()
             .update(Users)
