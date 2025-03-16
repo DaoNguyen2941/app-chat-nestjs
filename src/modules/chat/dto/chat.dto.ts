@@ -1,7 +1,7 @@
 
 import { OmitType, PickType, } from '@nestjs/mapped-types'
 import { Expose, Transform, Type } from "class-transformer";
-import { IsString, IsEmail, IsNotEmpty, IsObject, IsArray, IsNumber,  } from 'class-validator';
+import { IsString, IsEmail, IsNotEmpty, IsEnum, IsArray, IsNumber,  } from 'class-validator';
 import { any } from 'joi';
 import { typeUser } from 'src/modules/user/user.dto';
 import { MessageDataDto } from './message.dto'
@@ -90,5 +90,9 @@ export class listChatDto {
         return obj.unreadCount
     })
     unreadCount: number
+
+    @Expose()
+    @IsEnum(enumUserStatus)
+    status: 'online' | 'offline';
 }
 
