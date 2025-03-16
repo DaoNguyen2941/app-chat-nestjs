@@ -6,6 +6,27 @@ import { Redis } from 'ioredis';
 export class RedisCacheService {
   constructor(@InjectRedis() private readonly redis: Redis) {}
 
+  async getHsetCache(key: string, value: string,) {
+    return await this.redis.hget(key, value)
+  }
+
+    /** 
+   * Lưu cache vào Redis 
+   * @param key - Khóa lưu cache
+   * @param value - thuộc tính của value cần xóa
+   */
+  async deleteHsetCache(key: string, value: string,): Promise<number> {
+    return await this.redis.hdel(key, value)
+  }
+    /** 
+   * Lưu cache vào Redis 
+   * @param key - Khóa lưu cache
+   * @param value - Dữ liệu cần lưu
+   */
+  async setHsetCache(key: string, value: object,) {
+    await this.redis.hset(key,value)
+  }
+
   /** 
    * Lưu cache vào Redis 
    * @param key - Khóa lưu cache
