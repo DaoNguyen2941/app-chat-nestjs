@@ -37,4 +37,7 @@ export class Users extends BaseEntity {
     cascade: true,
   })
   userConversations: UserConversation[];
+
+  @Column({ type: 'datetime', nullable: true, })
+  lastSeen: Date | null;
 }
