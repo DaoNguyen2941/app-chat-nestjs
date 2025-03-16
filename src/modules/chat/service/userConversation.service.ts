@@ -9,12 +9,14 @@ import { Repository, QueryFailedError } from 'typeorm';
 import { UserConversation } from '../entity/userConversations.entity';
 import { listChatDto } from '../dto/chat.dto';
 import { plainToInstance } from "class-transformer";
-
+import { ManagerClientSocketService } from 'src/redis/services/managerClient.service';
 @Injectable()
 export class UserConversationService {
     constructor(
         @InjectRepository(UserConversation)
-        private readonly userConversationRepository: Repository<UserConversation>
+        private readonly userConversationRepository: Repository<UserConversation>,
+        private readonly managerClientSocketService: ManagerClientSocketService,
+
     ) { }
 
     async UpdateUnreadMessages(chatId: string, userid: string) {
@@ -104,9 +106,17 @@ export class UserConversationService {
             ])
             .getMany();
 
-        return plainToInstance(listChatDto, conversations.map(c => ({ ...c, currentUserId: userId })), {
-            excludeExtraneousValues: true
-        });
+            const dataConversation = await Promise.all(
+                conversations.map(async (c) => {
+                    const data = plainToInstance(listChatDto, { ...c, currentUserId: userId }, {
+                        excludeExtraneousValues: true
+                    });
+                    data.status = await this.managerClientSocketService.UserStatus(data.user.id);
+                    return data
+                })
+            );
+    
+            return dataConversation;
     }
 
 }
