@@ -11,7 +11,7 @@ import { JWTDecoded } from 'src/modules/auth/auth.dto';
 export class WebSocketAdapter extends IoAdapter {
   private readonly logger = new Logger(WebSocketAdapter.name);
   private readonly jwtService = new JwtService;
- 
+
   constructor(
     private readonly SocketClientService: ManagerClientSocketService,
     private app: any
@@ -82,20 +82,24 @@ export class WebSocketAdapter extends IoAdapter {
         sockeId: client.id,
         user: payload
       }
-
       await this.SocketClientService.addClientSocket(payload.sub, value);
+      await this.SocketClientService.getLastSeenClientSocket(payload.sub)
+      await this.SocketClientService.removieLastSeenClientSocket(payload.sub)
       client.join(payload.sub)
     } catch (error) {
+      console.log(error);
+
       client.disconnect();
     }
   }
 
-  handleDisconnect(client: IExtendUserInSocket): void {
+  async handleDisconnect(client: IExtendUserInSocket): Promise<void> {
     try {
       if (!client.user || !client.user.sub) {
         return;
       }
-      this.SocketClientService.removeClientSocket(client.user.sub);
+      await this.SocketClientService.setLastSeenClientSocket(client.user.sub)
+      await this.SocketClientService.removeClientSocket(client.user.sub);
     } catch (error) {
       this.logger.error(`❌ Error handling disconnect for socket ${client.id}: ${error.message}`);
     }
