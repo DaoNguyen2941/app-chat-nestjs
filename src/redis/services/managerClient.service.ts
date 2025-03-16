@@ -5,8 +5,31 @@ import { enumUserStatus } from 'src/modules/chat/dto/chat.dto';
 @Injectable()
 export class ManagerClientSocketService {
   private readonly SESSION_PREFIX = 'ws_session:'; // Tiền tố cho session WebSocket
-
+  private readonly LAST_SEEN_PREFIX = 'last_seen:';
   constructor(private readonly cacheService: RedisCacheService) {}
+
+  async getLastSeenClientSocket(userId:string) {
+    const data = await this.cacheService.getHsetCache(this.LAST_SEEN_PREFIX, userId);
+    if (!data) {
+      return null
+    }
+    return new Date(data);
+  }
+
+  async setLastSeenClientSocket(userId:string, time:Date) {
+    const value = {
+      userId,
+      time: time.toISOString() 
+    }
+    await this.cacheService.setHsetCache(this.LAST_SEEN_PREFIX, value)
+  }
+
+    /** 
+   * @returns dữ liệu đầu ra là số lượng cache bị xóa
+   */
+  async removieLastSeenClientSocket(userId:string,): Promise<number> {
+    return await this.cacheService.deleteHsetCache(this.LAST_SEEN_PREFIX, userId)
+  }
 
   async UserStatus(userId: string): Promise<enumUserStatus> {
     const session = await this.cacheService.getCache<IUserInSocket>(`${this.SESSION_PREFIX}${userId}`);
