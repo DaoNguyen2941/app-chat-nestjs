@@ -1,30 +1,29 @@
 import { Module } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
-import { AuthModule } from './auth/auth.module';
+import { AuthModule } from './modules/auth/auth.module';
 import { UseConfigModule } from './core/Configuration/configModule';
 import { UseTypeOrmModule } from './core/database/database.module';
-import { UserModule } from './user/user.module';
-import { CacheModule } from '@nestjs/cache-manager';
-import { MailerModule } from 'src/mailer/mailer.module';
+import { UserModule } from './modules/user/user.module';
 import { JwtModule } from '@nestjs/jwt';
-import { jwtConstants } from './auth/constants';
+import { jwtConstants } from './modules/auth/constants';
 import { PassportModule } from '@nestjs/passport';
-import { JwtAuthGuard } from './auth/guard/jwt-auth.guard';
-import { MessageController } from './chat/controller/message.controller';
-import { ChatModule } from './chat/chat.module';
-import { FriendModule } from './friend/friend.module';
-
+import { JwtAuthGuard } from './modules/auth/guard/jwt-auth.guard';
+import { ChatModule } from './modules/chat/chat.module';
+import { FriendModule } from './modules/friend/friend.module';
+// import { EventEmitterModule } from '@nestjs/event-emitter';
+import { ManagerClientSocketService } from 'src/redis/services/managerClient.service'; // Import các services cần thiết
+import { JwtService } from '@nestjs/jwt';
+import { GatewaysModule } from './gateways/gateway.module';
 @Module({
   imports: [
     UseTypeOrmModule,
     UseConfigModule,
     PassportModule,
-    CacheModule.register({
-      ttl: 600,
-      isGlobal: true
-    }),
+    // CacheModule.register({
+    //   ttl: 600,
+    //   isGlobal: true
+    // }),
     AuthModule,
-    MailerModule,
     UserModule,
     JwtModule.register({
       global: true,
@@ -33,9 +32,11 @@ import { FriendModule } from './friend/friend.module';
     }),
     ChatModule,
     FriendModule,
+    GatewaysModule,
+    // EventEmitterModule.forRoot()
   ],
-  controllers: [MessageController],
   providers: [
+    JwtService,
     {
       provide: APP_GUARD,
       useClass: JwtAuthGuard,
