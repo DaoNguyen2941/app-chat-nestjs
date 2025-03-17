@@ -9,16 +9,19 @@ export class ManagerClientSocketService {
   constructor(private readonly cacheService: RedisCacheService) {}
 
   async getLastSeenClientSocket(userId:string) {
-    const data = await this.cacheService.getCache(`${this.LAST_SEEN_PREFIX}${userId}`);
+    const data = await this.cacheService.getCache<{lastSeen:string}>(`${this.LAST_SEEN_PREFIX}${userId}`);
     if (!data) {
       return null
     }
-    return data
+    return new Date(data.lastSeen) 
   }
 
   async setLastSeenClientSocket(userId:string, time: Date) {
     console.log('set hast last seen ' + userId);
-    await this.cacheService.setCache(`${this.LAST_SEEN_PREFIX}${userId}`, time.toISOString())
+    const value : {lastSeen:string} = {
+      lastSeen: time.toISOString()
+    }
+    await this.cacheService.setCache(`${this.LAST_SEEN_PREFIX}${userId}`, value)
   }
 
     /** 

@@ -116,7 +116,7 @@ export class WebSocketAdapter extends IoAdapter {
         this.SocketClientService.setLastSeenClientSocket(client.user.sub, time),
         this.SocketClientService.removeClientSocket(client.user.sub)
       ])
-      this.userQueue.add(JOB_USER.UPDATE_LAST_SEEN, value, { delay: 1000 * 60 * 1 })
+      this.userQueue.add(JOB_USER.UPDATE_LAST_SEEN, value, { delay: 1000 * 60 * 60 })
     } catch (error) {
       this.logger.error(`❌ Error handling disconnect for socket ${client.id}: ${error.message}`);
     }

@@ -94,5 +94,8 @@ export class listChatDto {
     @Expose()
     @IsEnum(enumUserStatus)
     status: 'online' | 'offline';
+
+    @Expose()
+    lastSeen: Date | null
 }
 

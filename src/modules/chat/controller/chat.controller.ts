@@ -54,8 +54,8 @@ export class ChatController {
         const { user } = request;
         const { content } = databody;
         const chat = await this.chatService.getchatById(param.id, user.id);
-        await this.conversationService.UpdateUnreadMessages(param.id, chat.user.id)
-        return this.messageService.createMessage(content, param.id, user.id);
+        const isNewChat = await this.conversationService.UpdateUnreadMessages(param.id, chat.user.id)
+        return this.messageService.createMessage(content, param.id, user.id, isNewChat);
     }
 
     @Patch(':id/unreadCount')

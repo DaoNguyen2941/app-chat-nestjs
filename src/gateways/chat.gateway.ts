@@ -27,10 +27,10 @@ export class ChatGateway {
 
     // @OnEvent('message-sender')
     async handleEventSenderMessage(payload: OutgoingMessageDataDto) {
-        const { messageData, chatId, receiverId } = payload;
+        const { messageData, chatId, receiverId, isNewChat } = payload;
         const receiverSocket: IUserInSocket | null = await this.managerClientSocket.getSocketInfo(receiverId);
         if (receiverSocket) {
-            this.server.to(receiverId).emit('new-message', { messageData, chatId })
+            this.server.to(receiverId).emit('new-message', { messageData, chatId, isNewChat })
         } else {
             console.log(`userId: ${receiverId} hiện tại không online`);
         }

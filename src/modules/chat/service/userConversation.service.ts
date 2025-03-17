@@ -20,30 +20,31 @@ export class UserConversationService {
     ) { }
 
     async UpdateUnreadMessages(chatId: string, userid: string) {
-        const conversation = await this.findAndCreate(userid, chatId);
+        const {data, newChat} = await this.findAndCreate(userid, chatId);
 
-        if (!conversation) {
+        if (!data) {
             throw new Error('Cuộc trò chuyện không tồn tại');
         }
-        conversation.unreadCount += 1;
-        await this.userConversationRepository.save(conversation);
+        data.unreadCount += 1;
+        await this.userConversationRepository.save(data);
+        return newChat
     }
 
     async readAll(chatId: string, userId: string) {
         const conversation = await this.userConversationRepository.findOne({
             where: { user: { id: userId }, chat: { id: chatId } }
         });
-        
+
         if (!conversation) {
             throw new NotFoundException('Cuộc trò chuyện không tồn tại');
         }
-    
+
         // Chỉ cập nhật cột `unreadCount`, không cần cập nhật toàn bộ bản ghi
         await this.userConversationRepository.update(conversation.id, { unreadCount: 0 });
-    
+
         return { message: "Đã đánh dấu tất cả tin nhắn là đã đọc" };
     }
-    
+
 
     async getOneByChatIdAndUserId(chatId: string, userId: string) {
         return await this.userConversationRepository.findOne({
@@ -63,7 +64,10 @@ export class UserConversationService {
     async findAndCreate(userId: string, chatId: string) {
         const userConversation = await this.getOneByChatIdAndUserId(chatId, userId)
         if (userConversation) {
-            return userConversation
+            return {
+                data: userConversation,
+                newChat: false
+            }
         }
         const conversation = this.userConversationRepository.create({
             user: { id: userId }, // Tham chiếu tới user
@@ -71,7 +75,10 @@ export class UserConversationService {
             isDeleted: false,
         })
         const dataConversation = await this.userConversationRepository.save(conversation);
-        return dataConversation;
+        return {
+            data: dataConversation,
+            newChat: true
+        }
     }
 
     async getListConversations(userId: string): Promise<listChatDto[]> {
@@ -99,24 +106,38 @@ export class UserConversationService {
                 "s.name",
                 "s.avatar",
                 "s.account",
+                "s.lastSeen",
                 "r.id",
                 "r.name",
                 "r.avatar",
                 "r.account",
+                "r.lastSeen",
+
             ])
             .getMany();
 
-            const dataConversation = await Promise.all(
-                conversations.map(async (c) => {
-                    const data = plainToInstance(listChatDto, { ...c, currentUserId: userId }, {
-                        excludeExtraneousValues: true
-                    });
-                    data.status = await this.managerClientSocketService.UserStatus(data.user.id);
-                    return data
-                })
-            );
-    
-            return dataConversation;
+        const dataConversation = await Promise.all(
+            conversations.map(async (c) => {
+                const data = plainToInstance(listChatDto, { ...c, currentUserId: userId }, {
+                    excludeExtraneousValues: true
+                });
+
+                const [lastSeenFromSocket, userStatus] = await Promise.all([
+                    this.managerClientSocketService.getLastSeenClientSocket(data.user.id),
+                    this.managerClientSocketService.UserStatus(data.user.id),
+                ]);
+
+                data.status = userStatus
+                data.lastSeen = lastSeenFromSocket || (
+                    data.user.id === c.chat.sender.id ? c.chat.sender.lastSeen :
+                        data.user.id === c.chat.receiver.id ? c.chat.receiver.lastSeen : null
+                );                
+                return data
+            })
+        );
+        console.log(dataConversation);
+
+        return dataConversation;
     }
 
 }

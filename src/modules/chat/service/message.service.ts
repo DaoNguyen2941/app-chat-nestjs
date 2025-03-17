@@ -27,7 +27,7 @@ export class MessageService {
     ) { }
     
     @Post()
-    async createMessage(content: string, chatId: string, userId: string) {
+    async createMessage(content: string, chatId: string, userId: string, isNewChat: boolean) {
         try {
             const chatData = await this.chatService.getchatById(chatId, userId);
             const newMessage = this.messageRepository.create({
@@ -46,7 +46,8 @@ export class MessageService {
             const senderData: OutgoingMessageDataDto = {
                 messageData: messageData,
                 chatId: chatId,
-                receiverId: chatData.user.id
+                receiverId: chatData.user.id,
+                isNewChat: isNewChat
             }
             await this.chatQueue.add(JOB_CHAT.NEW_MESSAGE, senderData)
             // this.eventEmitter.emit('message-sender', senderData)
