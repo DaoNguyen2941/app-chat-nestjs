@@ -17,8 +17,6 @@ import { QueryFailedError } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import { hashData } from 'src/common/utils';
 import { JwtService } from '@nestjs/jwt';
-import { Cache } from 'cache-manager';
-import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { JWTPayload } from 'src/modules/auth/auth.dto';
 import { createCookie, } from 'src/common/utils';
 import { jwtConstants } from 'src/modules/auth/constants';
@@ -40,18 +38,23 @@ export class UserService {
 
     async setLastSeen(userId: string, time: Date | null) {
         try {
-            console.log('đang cập nhập last seen cho user');
-            
-           return await this.usersRepository
-            .createQueryBuilder()
-            .update(Users)
-            .set({ lastSeen: time })
-            .where("id = :userId", { userId })
-            .execute();            
+            console.log('🔄 Đang cập nhật last seen cho user:', userId);
+    
+            const result = await this.usersRepository
+                .createQueryBuilder()
+                .update(Users)
+                .set({ lastSeen: time }) // time có thể là null
+                .where("id = :userId", { userId })
+                .execute();
+    
+            console.log(`✅ Cập nhật lastSeen thành công cho userId: ${userId}`);
+            return result;
         } catch (error) {
             console.error(`❌ Lỗi khi cập nhật lastSeen cho userId: ${userId}`, error);
+            throw new Error(`Không thể cập nhật lastSeen cho user ${userId}`);
         }
     }
+    
 
     async sendEmailOTPChangePassword(email: string) {
         try {

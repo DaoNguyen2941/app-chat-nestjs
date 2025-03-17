@@ -17,7 +17,7 @@ export class WebSocketAdapter extends IoAdapter {
 
   constructor(
     private readonly SocketClientService: ManagerClientSocketService,
-    @InjectQueue(JOB_USER.NAME) private readonly userQueue: Queue, 
+    @InjectQueue(JOB_USER.NAME) private readonly userQueue: Queue,
     private app: any
   ) {
     super(app);
@@ -86,9 +86,13 @@ export class WebSocketAdapter extends IoAdapter {
         sockeId: client.id,
         user: payload
       }
-      await this.SocketClientService.addClientSocket(payload.sub, value);
-      await this.SocketClientService.getLastSeenClientSocket(payload.sub)
-      await this.SocketClientService.removieLastSeenClientSocket(payload.sub)
+      const [newClient, numberRemovieLastSeen] = await Promise.all([
+        this.SocketClientService.addClientSocket(payload.sub, value),
+        this.SocketClientService.removieLastSeenClientSocket(payload.sub)
+      ])
+      if (numberRemovieLastSeen === 0) {
+        await this.userQueue.add(JOB_USER.DELETE_LAST_SEEN, { userId: payload.sub })
+      }
       client.join(payload.sub)
     } catch (error) {
       console.log(error);
@@ -105,12 +109,14 @@ export class WebSocketAdapter extends IoAdapter {
       // userId:string, time: Date}
       const time = new Date;
       const value = {
-          userId: client.user.sub,
-          time: time
+        userId: client.user.sub,
+        time: time
       }
-      await this.SocketClientService.setLastSeenClientSocket(client.user.sub, time)
-      await this.SocketClientService.removeClientSocket(client.user.sub);
-      await this.userQueue.add(JOB_USER.UPDATE_LAST_SEEN, value, { delay: 1000 * 60 * 1 })
+      await Promise.all([
+        this.SocketClientService.setLastSeenClientSocket(client.user.sub, time),
+        this.SocketClientService.removeClientSocket(client.user.sub)
+      ])
+      this.userQueue.add(JOB_USER.UPDATE_LAST_SEEN, value, { delay: 1000 * 60 * 1 })
     } catch (error) {
       this.logger.error(`❌ Error handling disconnect for socket ${client.id}: ${error.message}`);
     }
