@@ -13,6 +13,7 @@ import { UserConversationService } from './service/userConversation.service';
 import { CustomRedisModule } from 'src/redis/redis.module';
 import { QueueModule } from '../queue/queue.module';
 import { ChatGroups } from './entity/chatGroup.entity';
+import { ChatGroupService } from './service/chatGroup.service';
 @Module({
   controllers: [ChatController],
   imports: [
@@ -26,6 +27,7 @@ import { ChatGroups } from './entity/chatGroup.entity';
     MessageService,
     UserConversationService,
     WsAuthGuard,
+    ChatGroupService,
   ]
 })
 export class ChatModule { }

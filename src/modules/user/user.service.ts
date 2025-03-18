@@ -38,7 +38,7 @@ export class UserService {
         try {
             const users = await this.usersRepository.find({
                 where: { id: In(userIds) },
-                select: ['id', 'account', 'email', 'avatar'],
+                select: ['id', 'account', 'avatar', 'name'],
             });
             return users
         } catch (error) {

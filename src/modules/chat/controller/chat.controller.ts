@@ -17,7 +17,7 @@ import { createMesagerDto } from '../dto/message.dto';
 import { CustomUserInRequest } from 'src/modules/auth/auth.dto';
 import { UserConversationService } from '../service/userConversation.service';
 import { ChatGroupService } from '../service/chatGroup.service';
-import { CreateChatGroupDto } from '../dto/chatGroup.dto';
+import { CreateChatGroupDto, ChatGroupResponseDto } from '../dto/chatGroup.dto';
 @Controller('chat')
 export class ChatController {
     constructor(
@@ -28,7 +28,7 @@ export class ChatController {
     ) { }
 
     @Post('group')
-    async createChatGroup(@Request() request: CustomUserInRequest, @Body() data: CreateChatGroupDto) {
+    async createChatGroup(@Request() request: CustomUserInRequest, @Body() data: CreateChatGroupDto):Promise<ChatGroupResponseDto> {
         const { user } = request
         const newGroup = await this.chatGroupService.createChatGroup(user.id,data)
         return newGroup;

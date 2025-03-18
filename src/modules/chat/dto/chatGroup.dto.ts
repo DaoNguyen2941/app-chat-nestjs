@@ -19,15 +19,18 @@ export class ChatGroupData {
     manager: typeUser;
 
     @Expose()
-    @ArrayNotEmpty()
+    // @ArrayNotEmpty()
+    @IsArray()
     @Type(() => typeUser)
-    member: typeUser[];
+    members: typeUser[];
 
     @Expose()
     @IsArray()
     @Type(() => MessageDataDto)
     message: MessageDataDto[];
 }
+
+export class ChatGroupResponseDto  extends PickType(ChatGroupData,['id','name', 'manager', 'members']) {}
 
 export class CreateChatGroupDto  extends PickType(ChatGroupData,['name']){
     @IsArray()

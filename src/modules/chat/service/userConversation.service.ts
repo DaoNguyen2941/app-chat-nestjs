@@ -48,15 +48,17 @@ export class UserConversationService {
 
     async getOneByChatIdAndUserId(chatId: string, userId: string) {
         return await this.userConversationRepository.findOne({
-            where: {
-                user: { id: userId },
-                chat: { id: chatId }
-            },
+            where: [
+                { user: { id: userId }, chat: { id: chatId } },
+                { user: { id: userId }, chatGroup: { id: chatId } }  // Dùng `OR` để kiểm tra cả 2 trường hợp
+            ],
             select: {
                 id: true,
                 chat: { id: true },
+                chatGroup: {id: true},
                 user: { id: true },
                 unreadCount: true,
+                IsGroup: true
             }
         });
     }
@@ -72,7 +74,6 @@ export class UserConversationService {
         const conversation = this.userConversationRepository.create({
             user: { id: userId }, // Tham chiếu tới user
             chat: { id: chatId }, // Tham chiếu tới chat vừa tạo
-            isDeleted: false,
         })
         const dataConversation = await this.userConversationRepository.save(conversation);
         return {
