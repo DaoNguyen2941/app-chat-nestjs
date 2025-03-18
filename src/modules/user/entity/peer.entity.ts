@@ -7,7 +7,4 @@ import { BaseEntity } from 'src/common/baseEntity';
 export class Peer extends BaseEntity {
   @OneToOne(() => Users, (user) => user.peer)
   user: Users;
-
-  @Column()
-  test: string
 }

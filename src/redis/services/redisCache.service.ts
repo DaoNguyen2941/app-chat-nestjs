@@ -6,6 +6,29 @@ import { Redis } from 'ioredis';
 export class RedisCacheService {
   constructor(@InjectRedis() private readonly redis: Redis) {}
 
+  async getHsetCache(key: string, value: string,) {
+    return await this.redis.hget(key, value)
+  }
+
+    /** 
+   * Lưu cache vào Redis 
+   * @param key - Khóa lưu cache
+   * @param value - thuộc tính của value cần xóa
+   */
+  async deleteHsetCache(key: string): Promise<number> {
+    return await this.redis.hdel(key)
+  }
+    /** 
+   * Lưu cache vào Redis 
+   * @param key - Khóa lưu cache
+   * @param value - Dữ liệu cần lưu
+   */
+  async setHsetCache(key: string, value: object,) {
+    const entries = Object.entries(value).flat(); // Chuyển object thành array key-value
+    console.log(entries);
+  await this.redis.hset(key, ...entries);
+  }
+
   /** 
    * Lưu cache vào Redis 
    * @param key - Khóa lưu cache
@@ -30,37 +53,10 @@ export class RedisCacheService {
    * Xóa cache theo key 
    * @param key - Khóa cần xóa
    */
-  async deleteCache(key: string): Promise<void> {
-    await this.redis.del(key);
+  async deleteCache(key: string): Promise<number> {
+    return await this.redis.del(key);
   }
 
-  /** 
-   * Lưu session người dùng 
-   * @param userId - ID người dùng
-   * @param sessionData - Dữ liệu session cần lưu
-   * @param ttl - Thời gian hết hạn (mặc định: 24 giờ)
-   */
-  async saveSession(userId: string, sessionData: any, ttl: number = 86400): Promise<void> {
-    await this.redis.set(`session:${userId}`, JSON.stringify(sessionData), 'EX', ttl);
-  }
-
-  /** 
-   * Lấy session người dùng 
-   * @param userId - ID người dùng
-   * @returns Dữ liệu session hoặc null nếu không tồn tại
-   */
-  async getSession<T>(userId: string): Promise<T | null> {
-    const session = await this.redis.get(`session:${userId}`);
-    return session ? JSON.parse(session) : null;
-  }
-
-  /** 
-   * Xóa session người dùng 
-   * @param userId - ID người dùng
-   */
-  async deleteSession(userId: string): Promise<void> {
-    await this.redis.del(`session:${userId}`);
-  }
 
   /** 
    * Kiểm tra khóa có tồn tại trong Redis không 

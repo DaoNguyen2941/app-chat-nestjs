@@ -1,23 +1,29 @@
 
-import { 
-  Column, 
-  Entity, 
+import {
+  Column,
+  Entity,
   ManyToOne,
   JoinColumn
-   } from 'typeorm';
-import { Users } from 'src/modules/user/entity/user.entity'; 
+} from 'typeorm';
+import { Users } from 'src/modules/user/entity/user.entity';
 import { BaseEntity } from 'src/common/baseEntity';
-import { Chat } from 'src/modules/chat/entity/chat.entity';
+import { Chat } from './chat.entity';
+import { ChatGroups } from './chatGroup.entity';
 @Entity()
-export class Message extends  BaseEntity {
+export class Message extends BaseEntity {
   @Column()
-  public content: string;
- 
-  @ManyToOne(() => Users)
-  public author: Users;
+  content: string;
 
-  @ManyToOne(() => Chat, (chat) => chat.message)
-  @JoinColumn()
-  chat: Chat;
+  @ManyToOne(() => Users)
+  @JoinColumn({ name: "authorId" })
+  author: Users;
+
+  @ManyToOne(() => Chat, (chat) => chat.message, { nullable: true })
+  @JoinColumn({ name: "chatId" })
+  chat: Chat | null;
+
+  @ManyToOne(() => ChatGroups, (chatGroup) => chatGroup.messages, { nullable: true })
+  @JoinColumn({ name: "chatGroupId" })
+  chatGroup: ChatGroups | null;
 }
- 
+
