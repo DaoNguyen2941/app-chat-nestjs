@@ -15,6 +15,10 @@ import {
   
   @Entity()
   export class ChatGroups extends BaseEntity {
+
+    @Column({ type: "varchar", nullable: false,})
+    name: string
+
     @ManyToOne(() => Users)
     @JoinColumn({ name: 'manager' })
     manager: Users;

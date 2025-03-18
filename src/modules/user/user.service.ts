@@ -5,15 +5,13 @@ import {
     UnauthorizedException,
     NotFoundException,
     BadRequestException,
-    Inject
 } from '@nestjs/common';
 import { InjectRepository } from "@nestjs/typeorm";
 import { Users } from './entity/user.entity';
-import { Repository, Like } from "typeorm";
+import { Repository, Like, In, QueryFailedError } from "typeorm";
 import { BasicUserDataDto, userDataDto } from './user.dto';
 import { plainToInstance } from "class-transformer";
 import { RegisterDto } from 'src/modules/auth/auth.dto';
-import { QueryFailedError } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import { hashData } from 'src/common/utils';
 import { JwtService } from '@nestjs/jwt';
@@ -36,17 +34,32 @@ export class UserService {
         private readonly redisCacheService: RedisCacheService,
     ) { }
 
+    async getByIds(userIds: string[]) {
+        try {
+            const users = await this.usersRepository.find({
+                where: { id: In(userIds) },
+                select: ['id', 'account', 'avatar', 'name'],
+            });
+            return users
+        } catch (error) {
+            throw new HttpException(
+                'Lỗi truy vấn cơ sở dữ liệu',
+                HttpStatus.INTERNAL_SERVER_ERROR
+            );
+        }
+    }
+
     async setLastSeen(userId: string, time: Date | null) {
         try {
             console.log('🔄 Đang cập nhật last seen cho user:', userId);
-    
+
             const result = await this.usersRepository
                 .createQueryBuilder()
                 .update(Users)
                 .set({ lastSeen: time }) // time có thể là null
                 .where("id = :userId", { userId })
                 .execute();
-    
+
             console.log(`✅ Cập nhật lastSeen thành công cho userId: ${userId}`);
             return result;
         } catch (error) {
@@ -54,7 +67,7 @@ export class UserService {
             throw new Error(`Không thể cập nhật lastSeen cho user ${userId}`);
         }
     }
-    
+
 
     async sendEmailOTPChangePassword(email: string) {
         try {

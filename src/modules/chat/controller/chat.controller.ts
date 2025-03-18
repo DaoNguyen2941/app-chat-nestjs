@@ -16,21 +16,34 @@ import { ChatDataDto, CreateChatDto2, ResCreateChatDto, listChatDto } from '../d
 import { createMesagerDto } from '../dto/message.dto';
 import { CustomUserInRequest } from 'src/modules/auth/auth.dto';
 import { UserConversationService } from '../service/userConversation.service';
-
+import { ChatGroupService } from '../service/chatGroup.service';
+import { CreateChatGroupDto, ChatGroupResponseDto } from '../dto/chatGroup.dto';
 @Controller('chat')
 export class ChatController {
     constructor(
         private readonly messageService: MessageService,
         private readonly chatService: ChatService,
-        private readonly conversationService: UserConversationService
+        private readonly conversationService: UserConversationService,
+        private readonly chatGroupService: ChatGroupService,
     ) { }
+
+    @Post('group')
+    async createChatGroup(@Request() request: CustomUserInRequest, @Body() data: CreateChatGroupDto):Promise<ChatGroupResponseDto> {
+        const { user } = request
+        const newGroup = await this.chatGroupService.createChatGroup(user.id,data)
+        const userIds = newGroup.members.map(user => user.id)
+        console.log(userIds);
+        
+        await this.conversationService.findAndCreate(user.id, newGroup.id,true, userIds);
+        return newGroup;
+    }
 
     @Post()
     async createChat(@Body() databody: CreateChatDto2, @Request() request: CustomUserInRequest): Promise<ResCreateChatDto | null> {
         const { user } = request
         const { receiverId } = databody
         const chat = await this.chatService.createChat(user.id, receiverId)
-        const userConversation = await this.conversationService.findAndCreate(user.id, chat.id);
+        const userConversation = await this.conversationService.findAndCreate(user.id, chat.id,false);
         const data = await this.chatService.getchatById(chat.id, user.id)
         return data;
     }
