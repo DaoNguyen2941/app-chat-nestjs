@@ -16,14 +16,23 @@ import { ChatDataDto, CreateChatDto2, ResCreateChatDto, listChatDto } from '../d
 import { createMesagerDto } from '../dto/message.dto';
 import { CustomUserInRequest } from 'src/modules/auth/auth.dto';
 import { UserConversationService } from '../service/userConversation.service';
-
+import { ChatGroupService } from '../service/chatGroup.service';
+import { CreateChatGroupDto } from '../dto/chatGroup.dto';
 @Controller('chat')
 export class ChatController {
     constructor(
         private readonly messageService: MessageService,
         private readonly chatService: ChatService,
-        private readonly conversationService: UserConversationService
+        private readonly conversationService: UserConversationService,
+        private readonly chatGroupService: ChatGroupService,
     ) { }
+
+    @Post('group')
+    async createChatGroup(@Request() request: CustomUserInRequest, @Body() data: CreateChatGroupDto) {
+        const { user } = request
+        const newGroup = await this.chatGroupService.createChatGroup(user.id,data)
+        return newGroup;
+    }
 
     @Post()
     async createChat(@Body() databody: CreateChatDto2, @Request() request: CustomUserInRequest): Promise<ResCreateChatDto | null> {

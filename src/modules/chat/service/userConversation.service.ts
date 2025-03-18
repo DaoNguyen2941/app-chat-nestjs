@@ -84,7 +84,7 @@ export class UserConversationService {
     async getListConversations(userId: string): Promise<listChatDto[]> {
         const conversations = await this.userConversationRepository
             .createQueryBuilder("uc")
-            .leftJoinAndSelect("uc.chat", "c")  // ✅ Đúng, JOIN dựa trên quan hệ trong entity
+            .leftJoinAndSelect("uc.chat", "c")  
             .leftJoinAndSelect("c.sender", "s") // Join sender
             .leftJoinAndSelect("c.receiver", "r") // Join receiver
             .leftJoinAndSelect(

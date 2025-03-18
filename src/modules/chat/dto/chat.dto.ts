@@ -2,7 +2,6 @@
 import { OmitType, PickType, } from '@nestjs/mapped-types'
 import { Expose, Transform, Type } from "class-transformer";
 import { IsString, IsEmail, IsNotEmpty, IsEnum, IsArray, IsNumber,  } from 'class-validator';
-import { any } from 'joi';
 import { typeUser } from 'src/modules/user/user.dto';
 import { MessageDataDto } from './message.dto'
 
@@ -45,7 +44,7 @@ export class ChatData {
 
     @Expose()
     @IsArray()
-    @Type(() => MessageDataDto)  // Bổ sung Type cho mảng
+    @Type(() => MessageDataDto) 
     message: MessageDataDto[];
 }
 
