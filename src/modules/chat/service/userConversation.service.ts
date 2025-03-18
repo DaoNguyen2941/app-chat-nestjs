@@ -115,6 +115,7 @@ export class UserConversationService {
     }
 
 
+    //hàm này hiện tại chỉ sử lý lấy tin nhắn cá nhân chưa sử lý lấy thêm tin nhắn nhóm
     async getListConversations(userId: string): Promise<listChatDto[]> {
         const conversations = await this.userConversationRepository
             .createQueryBuilder("uc")
@@ -131,6 +132,7 @@ export class UserConversationService {
                 "lm.chatId = c.id"
             )
             .where("uc.userId = :userId", { userId })
+            .andWhere("uc.IsGroup = :isGroup", { isGroup: false })
             .orderBy("lm.latestMessageTime", "DESC")
             .select([
                 "uc.id",
