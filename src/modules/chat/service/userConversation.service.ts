@@ -120,23 +120,25 @@ export class UserConversationService {
         const conversations = await this.userConversationRepository
             .createQueryBuilder("uc")
             .leftJoinAndSelect("uc.chat", "c")
-            .leftJoinAndSelect("c.sender", "s") // Join sender
-            .leftJoinAndSelect("c.receiver", "r") // Join receiver
+            .leftJoinAndSelect("uc.chatGroup", "cg")
+            .leftJoinAndSelect("cg.members", "mem")
+            .leftJoinAndSelect("c.sender", "s")
+            .leftJoinAndSelect("c.receiver", "r")
             .leftJoinAndSelect(
                 qb => qb
-                    .select("m.chatId", "chatId")
-                    .addSelect("MAX(m.created_At)", "latestMessageTime") // 🔹 Tìm tin nhắn mới nhất
-                    .from("message", "m")
-                    .groupBy("m.chatId"),
+                    .select("msg.chatId", "chatId")
+                    .addSelect("MAX(msg.created_At)", "latestMessageTime") // lấy tin nhắn mới 
+                    .from("message", "msg")
+                    .groupBy("msg.chatId"),
                 "lm",
-                "lm.chatId = c.id"
+                "lm.chatId = c.id OR lm.chatId = cg.id"
             )
             .where("uc.userId = :userId", { userId })
-            .andWhere("uc.IsGroup = :isGroup", { isGroup: false })
             .orderBy("lm.latestMessageTime", "DESC")
             .select([
                 "uc.id",
                 "uc.unreadCount",
+                "uc.IsGroup",
                 "c.id",
                 "s.id",
                 "s.name",
@@ -148,23 +150,24 @@ export class UserConversationService {
                 "r.avatar",
                 "r.account",
                 "r.lastSeen",
-
+                "cg.id",
+                "cg.name",
+                "mem.avatar",
             ])
             .getMany();
-
         const dataConversation = await Promise.all(
             conversations.map(async (c) => {
                 const data = plainToInstance(listChatDto, { ...c, currentUserId: userId }, {
                     excludeExtraneousValues: true
                 });
-
-                const [lastSeenFromSocket, userStatus] = await Promise.all([
-                    this.managerClientSocketService.getLastSeenClientSocket(data.user.id),
-                    this.managerClientSocketService.UserStatus(data.user.id),
-                ]);
-
-                data.status = userStatus
-                if (c.chat) {
+                console.log(data);
+                
+                if (c.chat && data.user && data.IsGroup) {
+                    const [lastSeenFromSocket, userStatus] = await Promise.all([
+                        this.managerClientSocketService.getLastSeenClientSocket(data.user.id),
+                        this.managerClientSocketService.UserStatus(data.user.id),
+                    ]);
+                    data.status = userStatus
                     data.lastSeen = lastSeenFromSocket || (
                         data.user.id === c.chat.sender.id ? c.chat.sender.lastSeen :
                             data.user.id === c.chat.receiver.id ? c.chat.receiver.lastSeen : null
@@ -173,8 +176,6 @@ export class UserConversationService {
                 return data
             })
         );
-        console.log(dataConversation);
-
         return dataConversation;
     }
 
