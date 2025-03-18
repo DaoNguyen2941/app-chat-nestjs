@@ -12,10 +12,11 @@ import { UserConversation } from './entity/userConversations.entity';
 import { UserConversationService } from './service/userConversation.service';
 import { CustomRedisModule } from 'src/redis/redis.module';
 import { QueueModule } from '../queue/queue.module';
+import { ChatGroups } from './entity/chatGroup.entity';
 @Module({
   controllers: [ChatController],
   imports: [
-    TypeOrmModule.forFeature([Message, Chat, UserConversation]),
+    TypeOrmModule.forFeature([Message, Chat, ChatGroups, UserConversation, ]),
     UserModule,
     CustomRedisModule,
     QueueModule,

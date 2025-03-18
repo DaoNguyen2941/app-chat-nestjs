@@ -20,7 +20,7 @@ export class UserConversationService {
     ) { }
 
     async UpdateUnreadMessages(chatId: string, userid: string) {
-        const {data, newChat} = await this.findAndCreate(userid, chatId);
+        const { data, newChat } = await this.findAndCreate(userid, chatId);
 
         if (!data) {
             throw new Error('Cuộc trò chuyện không tồn tại');
@@ -128,10 +128,12 @@ export class UserConversationService {
                 ]);
 
                 data.status = userStatus
-                data.lastSeen = lastSeenFromSocket || (
+                if (c.chat) {
+                    data.lastSeen = lastSeenFromSocket || (
                     data.user.id === c.chat.sender.id ? c.chat.sender.lastSeen :
-                        data.user.id === c.chat.receiver.id ? c.chat.receiver.lastSeen : null
-                );                
+                    data.user.id === c.chat.receiver.id ? c.chat.receiver.lastSeen : null
+                    );
+                }
                 return data
             })
         );
