@@ -115,7 +115,6 @@ export class UserConversationService {
     }
 
 
-    //hàm này hiện tại chỉ sử lý lấy tin nhắn cá nhân chưa sử lý lấy thêm tin nhắn nhóm
     async getListConversations(userId: string): Promise<listChatDto[]> {
         const conversations = await this.userConversationRepository
             .createQueryBuilder("uc")
