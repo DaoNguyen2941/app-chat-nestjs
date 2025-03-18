@@ -19,16 +19,31 @@ export class UserConversationService {
 
     ) { }
 
-    async UpdateUnreadMessages(chatId: string, userid: string) {
-        const { data, newChat } = await this.findAndCreate(userid, chatId);
 
-        if (!data) {
+    // async UpdateUnreadMessages(chatId: string, userid: string) {
+    // const { data, newChat } = await this.findAndCreate(userid, chatId, false);
+    //     if (!data) {
+    //         throw new Error('Cuộc trò chuyện không tồn tại');
+    //     }
+    //     data.unreadCount += 1;
+    //     await this.userConversationRepository.save(data);
+    //     return newChat
+    // }
+
+    // sửa lại hàm này cho phù hợp với trường hợp thông báo cho tất cả member trong nhóm
+    //hoạc thông báo cho 1 người nếu k phải chat nhóm
+    //tương lai cần lưu số lượng thông báo tin nhắn chưa đọc lên redis để tối ưu!
+    async UpdateUnreadMessages(chatId: string, userid: string) {
+        const dataArray = await this.findAndCreate(userid, chatId, false);
+        if (!dataArray) {
             throw new Error('Cuộc trò chuyện không tồn tại');
         }
-        data.unreadCount += 1;
-        await this.userConversationRepository.save(data);
-        return newChat
+        dataArray[0].data.unreadCount += 1;
+        await this.userConversationRepository.save(dataArray[0].data);
+        return dataArray[0].newChat
     }
+
+
 
     async readAll(chatId: string, userId: string) {
         const conversation = await this.userConversationRepository.findOne({
@@ -55,7 +70,7 @@ export class UserConversationService {
             select: {
                 id: true,
                 chat: { id: true },
-                chatGroup: {id: true},
+                chatGroup: { id: true },
                 user: { id: true },
                 unreadCount: true,
                 IsGroup: true
@@ -63,29 +78,47 @@ export class UserConversationService {
         });
     }
 
-    async findAndCreate(userId: string, chatId: string) {
-        const userConversation = await this.getOneByChatIdAndUserId(chatId, userId)
-        if (userConversation) {
-            return {
-                data: userConversation,
-                newChat: false
+    async findAndCreate(userId: string, chatId: string, IsGroup: boolean, membersChat: string[] = []) {
+        try {
+            if (!IsGroup) {
+                membersChat = [userId];
             }
-        }
-        const conversation = this.userConversationRepository.create({
-            user: { id: userId }, // Tham chiếu tới user
-            chat: { id: chatId }, // Tham chiếu tới chat vừa tạo
-        })
-        const dataConversation = await this.userConversationRepository.save(conversation);
-        return {
-            data: dataConversation,
-            newChat: true
+
+            const conversations = await Promise.all(
+                membersChat.map(async (memberId) => {
+                    const existingConversation = await this.getOneByChatIdAndUserId(chatId, memberId);
+
+                    if (existingConversation) {
+                        return { data: existingConversation, newChat: false };
+                    }
+
+                    const conversation = this.userConversationRepository.create({
+                        user: { id: memberId },
+                        [IsGroup ? 'chatGroup' : 'chat']: { id: chatId },
+                        IsGroup
+                    });
+
+                    const savedConversation = await this.userConversationRepository.save(conversation);
+                    return { data: savedConversation, newChat: true };
+                })
+            );
+
+            return conversations;
+
+        } catch (error) {
+            console.error('Lỗi trong findAndCreate:', error);
+            throw new HttpException(
+                'Có lỗi xảy ra khi tạo cuộc trò chuyện',
+                HttpStatus.INTERNAL_SERVER_ERROR
+            );
         }
     }
+
 
     async getListConversations(userId: string): Promise<listChatDto[]> {
         const conversations = await this.userConversationRepository
             .createQueryBuilder("uc")
-            .leftJoinAndSelect("uc.chat", "c")  
+            .leftJoinAndSelect("uc.chat", "c")
             .leftJoinAndSelect("c.sender", "s") // Join sender
             .leftJoinAndSelect("c.receiver", "r") // Join receiver
             .leftJoinAndSelect(
@@ -131,8 +164,8 @@ export class UserConversationService {
                 data.status = userStatus
                 if (c.chat) {
                     data.lastSeen = lastSeenFromSocket || (
-                    data.user.id === c.chat.sender.id ? c.chat.sender.lastSeen :
-                    data.user.id === c.chat.receiver.id ? c.chat.receiver.lastSeen : null
+                        data.user.id === c.chat.sender.id ? c.chat.sender.lastSeen :
+                            data.user.id === c.chat.receiver.id ? c.chat.receiver.lastSeen : null
                     );
                 }
                 return data

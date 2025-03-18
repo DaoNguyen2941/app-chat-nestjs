@@ -31,6 +31,7 @@ export class ChatController {
     async createChatGroup(@Request() request: CustomUserInRequest, @Body() data: CreateChatGroupDto):Promise<ChatGroupResponseDto> {
         const { user } = request
         const newGroup = await this.chatGroupService.createChatGroup(user.id,data)
+        await this.conversationService.findAndCreate(user.id, newGroup.id,true);
         return newGroup;
     }
 
@@ -39,7 +40,7 @@ export class ChatController {
         const { user } = request
         const { receiverId } = databody
         const chat = await this.chatService.createChat(user.id, receiverId)
-        const userConversation = await this.conversationService.findAndCreate(user.id, chat.id);
+        const userConversation = await this.conversationService.findAndCreate(user.id, chat.id,false);
         const data = await this.chatService.getchatById(chat.id, user.id)
         return data;
     }
