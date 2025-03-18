@@ -27,14 +27,18 @@ export class ChatController {
         private readonly chatGroupService: ChatGroupService,
     ) { }
 
+    @Get('group/:id')
+    async getChatGroupData(@Param() param: IParamsId, @Request() request: CustomUserInRequest) {
+        const { id } = param;
+        return await this.chatGroupService.getChatGroupById(id)
+    }
+
     @Post('group')
-    async createChatGroup(@Request() request: CustomUserInRequest, @Body() data: CreateChatGroupDto):Promise<ChatGroupResponseDto> {
+    async createChatGroup(@Request() request: CustomUserInRequest, @Body() data: CreateChatGroupDto): Promise<ChatGroupResponseDto> {
         const { user } = request
-        const newGroup = await this.chatGroupService.createChatGroup(user.id,data)
+        const newGroup = await this.chatGroupService.createChatGroup(user.id, data)
         const userIds = newGroup.members.map(user => user.id)
-        console.log(userIds);
-        
-        await this.conversationService.findAndCreate(user.id, newGroup.id,true, userIds);
+        await this.conversationService.findAndCreate(user.id, newGroup.id, true, userIds);
         return newGroup;
     }
 
@@ -43,7 +47,7 @@ export class ChatController {
         const { user } = request
         const { receiverId } = databody
         const chat = await this.chatService.createChat(user.id, receiverId)
-        const userConversation = await this.conversationService.findAndCreate(user.id, chat.id,false);
+        const userConversation = await this.conversationService.findAndCreate(user.id, chat.id, false);
         const data = await this.chatService.getchatById(chat.id, user.id)
         return data;
     }
