@@ -17,7 +17,6 @@ export class ManagerClientSocketService {
   }
 
   async setLastSeenClientSocket(userId:string, time: Date) {
-    console.log('set hast last seen ' + userId);
     const value : {lastSeen:string} = {
       lastSeen: time.toISOString()
     }
@@ -28,14 +27,11 @@ export class ManagerClientSocketService {
    * @returns dữ liệu đầu ra là số lượng cache bị xóa
    */
   async removieLastSeenClientSocket(userId:string,): Promise<number> {
-    console.log(`delete last meen userId ${userId}`);
     return await this.cacheService.deleteCache(`${this.LAST_SEEN_PREFIX}${userId}`)
   }
 
   async UserStatus(userId: string): Promise<enumUserStatus> {
-    const session = await this.cacheService.getCache<IUserInSocket>(`${this.SESSION_PREFIX}${userId}`);
-    console.log(session);
-    
+    const session = await this.cacheService.getCache<IUserInSocket>(`${this.SESSION_PREFIX}${userId}`);    
     return session ? enumUserStatus.online : enumUserStatus.offline // Nếu có session => online, nếu không => offline
   }
 

@@ -45,7 +45,6 @@ export class ChatGroupService {
                 excludeExtraneousValues: true,
             })               
         } catch (error) {
-            console.log(error);
             throw new InternalServerErrorException('Lỗi máy chủ, vui lòng thử lại sau.');
         }
     }
@@ -68,8 +67,6 @@ export class ChatGroupService {
                 members: users,
             })
             const saveData = await this.chatGroupRepository.save(chatGroup);
-            console.log(saveData);
-
             return plainToInstance(ChatGroupResponseDto, saveData, {
                 excludeExtraneousValues: true,
             })

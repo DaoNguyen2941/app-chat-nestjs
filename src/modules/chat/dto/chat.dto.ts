@@ -79,9 +79,7 @@ export class ChatDataDto extends PickType(ChatData, ['id', 'isGroup','name','mem
     @Expose()
     @Type(() => MessageDataDto)
     @Transform(({ obj }) => {
-        console.log(obj);
         const message = obj.message || obj.messages;
-        console.log(message);
         return message
     })
     message: MessageDataDto[] ;

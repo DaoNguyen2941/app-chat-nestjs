@@ -34,7 +34,8 @@ export class ChatController {
         const groupData = await this.chatGroupService.getChatGroupById(id)
         const memberIds = groupData.members.map(user => user.id)
         const userIds = memberIds.filter(item => item !== user.id);
-        await this.conversationService.UpdateUnreadGroupMessages(id,userIds)
+        console.log(userIds);
+        await this.conversationService.UpdateUnreadGroupMessages(user.id,id,userIds)
         return await this.messageService.createMessageInGroup(id,data.content,user.id, userIds)
     }
 
@@ -46,7 +47,7 @@ export class ChatController {
 
     @Patch('group/:id/unreadCount')
     async readAllMessagesGroup(@Param() param: IParamsId, @Request() request: CustomUserInRequest) {
-        console.log('readAllMessagesGroup');
+       
         
         const { user } = request
         const { id } = param;

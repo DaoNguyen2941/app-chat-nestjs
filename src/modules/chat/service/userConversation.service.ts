@@ -5,7 +5,7 @@ import {
     NotFoundException
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, QueryFailedError,In } from 'typeorm';
+import { Repository, QueryFailedError, In } from 'typeorm';
 import { UserConversation } from '../entity/userConversations.entity';
 import { listChatDto } from '../dto/chat.dto';
 import { plainToInstance } from "class-transformer";
@@ -19,7 +19,7 @@ export class UserConversationService {
 
     ) { }
 
-    async readAllGroup(userId:string, chatGroupId: string) {
+    async readAllGroup(userId: string, chatGroupId: string) {
         const conversation = await this.userConversationRepository.findOne({
             where: { user: { id: userId }, chatGroup: { id: chatGroupId } }
         });
@@ -40,10 +40,12 @@ export class UserConversationService {
         return dataArray[0].newChat
     }
 
-    async UpdateUnreadGroupMessages(chatId: string, memberIds: string[]){
-        await this.userConversationRepository.update(
-            { chatGroup: { id: chatId, members: {id: In(memberIds)} }},
-            { unreadCount: () => "unreadCount + 1" } // Cập nhật
+    async UpdateUnreadGroupMessages(userId: string,chatId: string, memberIds: string[]) {
+        const dataArray = await this.findAndCreate(userId, chatId, true, memberIds);
+        const ConversationIds = dataArray.map(data => data.data.id)
+        return await this.userConversationRepository.update(
+            { id: In(ConversationIds) },
+            { unreadCount: () => "unreadCount + 1" }
         );
     }
 
@@ -160,8 +162,6 @@ export class UserConversationService {
                 const data = plainToInstance(listChatDto, { ...c, currentUserId: userId }, {
                     excludeExtraneousValues: true
                 });
-                console.log(data);
-                
                 if (c.chat && data.user && !data.IsGroup) {
                     const [lastSeenFromSocket, userStatus] = await Promise.all([
                         this.managerClientSocketService.getLastSeenClientSocket(data.user.id),
