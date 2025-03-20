@@ -2,6 +2,7 @@ export const JOB_CHAT = {
     NAME: 'chat-queue',
     NEW_MESSAGE: 'chat-new-message',
     DELETE_MESSAGE: 'chat-delete-message',
+    NEW_MESSAGE_GROUP: 'chat-group-new-message',
 };
 
 export const JOB_FRIEND = {

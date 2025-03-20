@@ -27,14 +27,40 @@ export class ChatController {
         private readonly chatGroupService: ChatGroupService,
     ) { }
 
-    @Post('group')
-    async createChatGroup(@Request() request: CustomUserInRequest, @Body() data: CreateChatGroupDto):Promise<ChatGroupResponseDto> {
-        const { user } = request
-        const newGroup = await this.chatGroupService.createChatGroup(user.id,data)
-        const userIds = newGroup.members.map(user => user.id)
-        console.log(userIds);
+    @Post('group/:id/message')
+    async sendMessageGroup(@Param() param: IParamsId, @Request() request: CustomUserInRequest,  @Body() data: createMesagerDto) {
+        const { id } = param;
+        const { user } = request;
+        const groupData = await this.chatGroupService.getChatGroupById(id)
+        const memberIds = groupData.members.map(user => user.id)
+        const userIds = memberIds.filter(item => item !== user.id);
+        await this.conversationService.UpdateUnreadGroupMessages(id,userIds)
+        return await this.messageService.createMessageInGroup(id,data.content,user.id, userIds)
+    }
+
+    @Get('group/:id')
+    async getChatGroupData(@Param() param: IParamsId) {
+        const { id } = param;
+        return await this.chatGroupService.getChatGroupById(id)
+    }
+
+    @Patch('group/:id/unreadCount')
+    async readAllMessagesGroup(@Param() param: IParamsId, @Request() request: CustomUserInRequest) {
+        console.log('readAllMessagesGroup');
         
-        await this.conversationService.findAndCreate(user.id, newGroup.id,true, userIds);
+        const { user } = request
+        const { id } = param;
+        await this.chatGroupService.getChatGroupById(id)
+        return await this.conversationService.readAllGroup(user.id,id)
+    }
+   
+
+    @Post('group')
+    async createChatGroup(@Request() request: CustomUserInRequest, @Body() data: CreateChatGroupDto): Promise<ChatGroupResponseDto> {
+        const { user } = request
+        const newGroup = await this.chatGroupService.createChatGroup(user.id, data)
+        const userIds = newGroup.members.map(user => user.id)
+        await this.conversationService.findAndCreate(user.id, newGroup.id, true, userIds);
         return newGroup;
     }
 
@@ -43,7 +69,7 @@ export class ChatController {
         const { user } = request
         const { receiverId } = databody
         const chat = await this.chatService.createChat(user.id, receiverId)
-        const userConversation = await this.conversationService.findAndCreate(user.id, chat.id,false);
+        const userConversation = await this.conversationService.findAndCreate(user.id, chat.id, false);
         const data = await this.chatService.getchatById(chat.id, user.id)
         return data;
     }
@@ -67,8 +93,8 @@ export class ChatController {
         const { user } = request;
         const { content } = databody;
         const chat = await this.chatService.getchatById(param.id, user.id);
-        const isNewChat = await this.conversationService.UpdateUnreadMessages(param.id, chat.user.id)
-        return this.messageService.createMessage(content, param.id, user.id, isNewChat);
+        const isNewChat = await this.conversationService.UpdateUnreadMessages(chat.id, chat.user.id)
+        return this.messageService.createMessage(content, chat, user.id, isNewChat);
     }
 
     @Patch(':id/unreadCount')
