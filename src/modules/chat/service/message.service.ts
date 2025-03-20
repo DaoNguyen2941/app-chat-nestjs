@@ -45,7 +45,7 @@ export class MessageService {
             
             const senderData: OutgoingMessageGroupDataDto = {
                 messageData: messageData,
-                chatId: `group/${groupId}`,
+                chatId: groupId,
                 receiverId: memberIds,
                 isNewChat: false,
                 isGroup: true

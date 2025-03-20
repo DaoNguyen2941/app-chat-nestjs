@@ -39,10 +39,21 @@ export class ChatController {
     }
 
     @Get('group/:id')
-    async getChatGroupData(@Param() param: IParamsId, @Request() request: CustomUserInRequest) {
+    async getChatGroupData(@Param() param: IParamsId) {
         const { id } = param;
         return await this.chatGroupService.getChatGroupById(id)
     }
+
+    @Patch('group/:id/unreadCount')
+    async readAllMessagesGroup(@Param() param: IParamsId, @Request() request: CustomUserInRequest) {
+        console.log('readAllMessagesGroup');
+        
+        const { user } = request
+        const { id } = param;
+        await this.chatGroupService.getChatGroupById(id)
+        return await this.conversationService.readAllGroup(user.id,id)
+    }
+   
 
     @Post('group')
     async createChatGroup(@Request() request: CustomUserInRequest, @Body() data: CreateChatGroupDto): Promise<ChatGroupResponseDto> {

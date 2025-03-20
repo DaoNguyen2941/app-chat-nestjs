@@ -19,20 +19,17 @@ export class UserConversationService {
 
     ) { }
 
+    async readAllGroup(userId:string, chatGroupId: string) {
+        const conversation = await this.userConversationRepository.findOne({
+            where: { user: { id: userId }, chatGroup: { id: chatGroupId } }
+        });
+        if (!conversation) {
+            throw new NotFoundException('Cuộc trò chuyện không tồn tại');
+        }
+        await this.userConversationRepository.update(conversation.id, { unreadCount: 0 });
+        return { message: "Đã đánh dấu tất cả tin nhắn là đã đọc" };
+    }
 
-    // async UpdateUnreadMessages(chatId: string, userid: string) {
-    // const { data, newChat } = await this.findAndCreate(userid, chatId, false);
-    //     if (!data) {
-    //         throw new Error('Cuộc trò chuyện không tồn tại');
-    //     }
-    //     data.unreadCount += 1;
-    //     await this.userConversationRepository.save(data);
-    //     return newChat
-    // }
-
-    // sửa lại hàm này cho phù hợp với trường hợp thông báo cho tất cả member trong nhóm
-    //hoạc thông báo cho 1 người nếu k phải chat nhóm
-    //tương lai cần lưu số lượng thông báo tin nhắn chưa đọc lên redis để tối ưu!
     async UpdateUnreadMessages(chatId: string, userid: string) {
         const dataArray = await this.findAndCreate(userid, chatId, false);
         if (!dataArray) {
