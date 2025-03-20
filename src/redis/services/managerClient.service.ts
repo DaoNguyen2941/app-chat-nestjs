@@ -47,6 +47,11 @@ export class ManagerClientSocketService {
     return await this.cacheService.getCache<IUserInSocket>(`${this.SESSION_PREFIX}${userId}`);
   }
 
+  async getSocketInfos(userId: string[]): Promise<(IUserInSocket[] | null)[]> {
+    const listKey = userId.map((id) => `${this.SESSION_PREFIX}${id}`)
+    return await this.cacheService.mGetCache<IUserInSocket[]>(listKey);
+  }
+
   async removeClientSocket(userId: string): Promise<void> {
     try {
       await this.cacheService.deleteCache(`${this.SESSION_PREFIX}${userId}`);

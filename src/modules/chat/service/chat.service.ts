@@ -100,7 +100,8 @@ export class ChatService {
             if (!chatData) {
                 throw new NotFoundException()
             }            
-            return plainToInstance(ChatDataDto, { ...chatData, userId }, {
+            const isGroup = false
+            return plainToInstance(ChatDataDto, { ...chatData, userId, isGroup}, {
                 excludeExtraneousValues: true,
             })
         } catch (error) {

@@ -5,7 +5,7 @@ import { ChatGroups } from '../entity/chatGroup.entity';
 import { UserService } from 'src/modules/user/user.service';
 import { CreateChatGroupDto, ChatGroupResponseDto } from '../dto/chatGroup.dto';
 import { plainToInstance } from 'class-transformer';
-
+import { ChatDataDto } from '../dto/chat.dto';
 @Injectable()
 export class ChatGroupService {
     constructor(
@@ -14,7 +14,7 @@ export class ChatGroupService {
         private readonly usersService: UserService,
     ) { }
 
-    async getChatGroupById(groupId: string) {
+    async getChatGroupById(groupId: string):Promise<ChatDataDto> {
         try {
             const chatGroup = await this.chatGroupRepository
             .createQueryBuilder("cg")
@@ -23,7 +23,7 @@ export class ChatGroupService {
             .leftJoinAndSelect("cg.messages", "msg") 
             .leftJoinAndSelect("msg.author", "author") 
             .where("cg.id = :groupId", { groupId })
-            .orderBy("msg.created_At", "DESC") 
+            .orderBy("msg.created_At", "ASC") 
             .select([
                 "cg.id",
                 "cg.name",
@@ -40,9 +40,10 @@ export class ChatGroupService {
                 "author.account",
             ])
             .getOne();
-
-            return chatGroup
-               
+            const isGroup = true
+            return plainToInstance(ChatDataDto, { ...chatGroup, isGroup }, {
+                excludeExtraneousValues: true,
+            })               
         } catch (error) {
             console.log(error);
             throw new InternalServerErrorException('Lỗi máy chủ, vui lòng thử lại sau.');

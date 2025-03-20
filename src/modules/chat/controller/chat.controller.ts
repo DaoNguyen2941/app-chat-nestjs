@@ -27,6 +27,17 @@ export class ChatController {
         private readonly chatGroupService: ChatGroupService,
     ) { }
 
+    @Post('group/:id/message')
+    async sendMessageGroup(@Param() param: IParamsId, @Request() request: CustomUserInRequest,  @Body() data: createMesagerDto) {
+        const { id } = param;
+        const { user } = request;
+        const groupData = await this.chatGroupService.getChatGroupById(id)
+        const memberIds = groupData.members.map(user => user.id)
+        const userIds = memberIds.filter(item => item !== user.id);
+        await this.conversationService.UpdateUnreadGroupMessages(id,userIds)
+        return await this.messageService.createMessageInGroup(id,data.content,user.id, userIds)
+    }
+
     @Get('group/:id')
     async getChatGroupData(@Param() param: IParamsId, @Request() request: CustomUserInRequest) {
         const { id } = param;
@@ -71,8 +82,8 @@ export class ChatController {
         const { user } = request;
         const { content } = databody;
         const chat = await this.chatService.getchatById(param.id, user.id);
-        const isNewChat = await this.conversationService.UpdateUnreadMessages(param.id, chat.user.id)
-        return this.messageService.createMessage(content, param.id, user.id, isNewChat);
+        const isNewChat = await this.conversationService.UpdateUnreadMessages(chat.id, chat.user.id)
+        return this.messageService.createMessage(content, chat, user.id, isNewChat);
     }
 
     @Patch(':id/unreadCount')

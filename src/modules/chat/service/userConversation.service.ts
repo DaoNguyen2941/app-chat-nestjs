@@ -5,7 +5,7 @@ import {
     NotFoundException
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, QueryFailedError } from 'typeorm';
+import { Repository, QueryFailedError,In } from 'typeorm';
 import { UserConversation } from '../entity/userConversations.entity';
 import { listChatDto } from '../dto/chat.dto';
 import { plainToInstance } from "class-transformer";
@@ -43,7 +43,12 @@ export class UserConversationService {
         return dataArray[0].newChat
     }
 
-
+    async UpdateUnreadGroupMessages(chatId: string, memberIds: string[]){
+        await this.userConversationRepository.update(
+            { chatGroup: { id: chatId, members: {id: In(memberIds)} }},
+            { unreadCount: () => "unreadCount + 1" } // Cập nhật
+        );
+    }
 
     async readAll(chatId: string, userId: string) {
         const conversation = await this.userConversationRepository.findOne({
@@ -83,7 +88,6 @@ export class UserConversationService {
             if (!IsGroup) {
                 membersChat = [userId];
             }
-
             const conversations = await Promise.all(
                 membersChat.map(async (memberId) => {
                     const existingConversation = await this.getOneByChatIdAndUserId(chatId, memberId);
@@ -161,7 +165,7 @@ export class UserConversationService {
                 });
                 console.log(data);
                 
-                if (c.chat && data.user && data.IsGroup) {
+                if (c.chat && data.user && !data.IsGroup) {
                     const [lastSeenFromSocket, userStatus] = await Promise.all([
                         this.managerClientSocketService.getLastSeenClientSocket(data.user.id),
                         this.managerClientSocketService.UserStatus(data.user.id),

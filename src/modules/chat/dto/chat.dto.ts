@@ -56,16 +56,36 @@ export class ChatData {
 
     @Expose()
     @IsBoolean()
-    isGroup: boolean
+    isGroup: boolean;
+
+    @Expose()
+    @Type(() => typeUser)
+    members: typeUser[];
+
+    @Expose()
+    name: string | null
 }
 
-export class ChatDataDto extends PickType(ChatData, ['id', 'message'] as const) {
+export class ChatDataDto extends PickType(ChatData, ['id', 'isGroup','name','members'] as const) {
     @Expose()
     @Transform(({ obj }) => {
         if (!obj.sender || !obj.receiver || !obj.userId) return null;
         return obj.sender.id === obj.userId ? obj.receiver : obj.sender;
     })
     user: typeUser;
+
+    //sửa lại database cột message  của groupchat và chat phải giống nhau
+    //  thì xóa đoạn code bên dưới và thêm tên cột vòa PickType
+    @Expose()
+    @Type(() => MessageDataDto)
+    @Transform(({ obj }) => {
+        console.log(obj);
+        const message = obj.message || obj.messages;
+        console.log(message);
+        return message
+    })
+    message: MessageDataDto[] ;
+
 }
 
 export class Chats extends PickType(ChatData, ['id']) {
