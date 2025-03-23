@@ -33,7 +33,7 @@ export class FriendController {
     @Get("requests/lists")
     async getFriendRequest(@Request() request: UserDataInReq): Promise<FriendRequestDto[]> {
         const { user } = request
-        return await this.friendService.getFriendRequests2(user.id);
+        return await this.friendService.getFriendRequests(user.id);
     };
 
     @Post()
