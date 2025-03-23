@@ -1,11 +1,11 @@
-import { Injectable, NotFoundException, HttpException, HttpStatus } from '@nestjs/common';
+import { Injectable, NotFoundException, HttpException, HttpStatus, InternalServerErrorException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ChatGroups } from '../entity/chatGroup.entity';
 import { UserService } from 'src/modules/user/user.service';
 import { CreateChatGroupDto, ChatGroupResponseDto } from '../dto/chatGroup.dto';
 import { plainToInstance } from 'class-transformer';
-
+import { ChatDataDto } from '../dto/chat.dto';
 @Injectable()
 export class ChatGroupService {
     constructor(
@@ -13,6 +13,41 @@ export class ChatGroupService {
         private chatGroupRepository: Repository<ChatGroups>,
         private readonly usersService: UserService,
     ) { }
+
+    async getChatGroupById(groupId: string):Promise<ChatDataDto> {
+        try {
+            const chatGroup = await this.chatGroupRepository
+            .createQueryBuilder("cg")
+            .leftJoinAndSelect("cg.manager", "manager") 
+            .leftJoinAndSelect("cg.members", "mem") 
+            .leftJoinAndSelect("cg.messages", "msg") 
+            .leftJoinAndSelect("msg.author", "author") 
+            .where("cg.id = :groupId", { groupId })
+            .orderBy("msg.created_At", "ASC") 
+            .select([
+                "cg.id",
+                "cg.name",
+                "mem.id",
+                "mem.name",
+                "mem.avatar",
+                "mem.account",
+                "msg.id",
+                "msg.content",
+                "msg.created_At",
+                "author.id",
+                "author.name",
+                "author.avatar",
+                "author.account",
+            ])
+            .getOne();
+            const isGroup = true
+            return plainToInstance(ChatDataDto, { ...chatGroup, isGroup }, {
+                excludeExtraneousValues: true,
+            })               
+        } catch (error) {
+            throw new InternalServerErrorException('Lỗi máy chủ, vui lòng thử lại sau.');
+        }
+    }
 
     async createChatGroup(userId: string, dto: CreateChatGroupDto) {
         try {
@@ -32,8 +67,6 @@ export class ChatGroupService {
                 members: users,
             })
             const saveData = await this.chatGroupRepository.save(chatGroup);
-            console.log(saveData);
-            
             return plainToInstance(ChatGroupResponseDto, saveData, {
                 excludeExtraneousValues: true,
             })

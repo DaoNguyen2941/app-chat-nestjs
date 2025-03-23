@@ -51,19 +51,14 @@ export class UserService {
 
     async setLastSeen(userId: string, time: Date | null) {
         try {
-            console.log('🔄 Đang cập nhật last seen cho user:', userId);
-
             const result = await this.usersRepository
                 .createQueryBuilder()
                 .update(Users)
                 .set({ lastSeen: time }) // time có thể là null
                 .where("id = :userId", { userId })
                 .execute();
-
-            console.log(`✅ Cập nhật lastSeen thành công cho userId: ${userId}`);
             return result;
         } catch (error) {
-            console.error(`❌ Lỗi khi cập nhật lastSeen cho userId: ${userId}`, error);
             throw new Error(`Không thể cập nhật lastSeen cho user ${userId}`);
         }
     }

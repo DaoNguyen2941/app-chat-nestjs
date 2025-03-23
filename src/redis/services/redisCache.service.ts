@@ -6,6 +6,11 @@ import { Redis } from 'ioredis';
 export class RedisCacheService {
   constructor(@InjectRedis() private readonly redis: Redis) {}
 
+  async mGetCache<T>(keys: string[]): Promise<(T | null)[]> {
+    const data = await this.redis.mget(...keys);
+    return data.map((item) => (item ? JSON.parse(item) : null));
+  }
+
   async getHsetCache(key: string, value: string,) {
     return await this.redis.hget(key, value)
   }
@@ -25,7 +30,6 @@ export class RedisCacheService {
    */
   async setHsetCache(key: string, value: object,) {
     const entries = Object.entries(value).flat(); // Chuyển object thành array key-value
-    console.log(entries);
   await this.redis.hset(key, ...entries);
   }
 

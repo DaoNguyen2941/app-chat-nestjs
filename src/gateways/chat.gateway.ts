@@ -11,7 +11,7 @@ import { WsAuthGuard } from 'src/modules/auth/guard/wsAuth.guard';
 import { UseGuards } from "@nestjs/common";
 import { Socket, Server } from "socket.io";
 import { OnEvent } from "@nestjs/event-emitter";
-import { MessageDataDto, OutgoingMessageDataDto } from "src/modules/chat/dto/message.dto";
+import { MessageDataDto, OutgoingMessageDataDto, OutgoingMessageGroupDataDto } from "src/modules/chat/dto/message.dto";
 import { IExtendUserInSocket, IUserInSocket } from "src/common/Interface";
 
 @WebSocketGateway()
@@ -27,12 +27,23 @@ export class ChatGateway {
 
     // @OnEvent('message-sender')
     async handleEventSenderMessage(payload: OutgoingMessageDataDto) {
-        const { messageData, chatId, receiverId, isNewChat } = payload;
+        const { messageData, chatId, receiverId, isNewChat, isGroup } = payload;
         const receiverSocket: IUserInSocket | null = await this.managerClientSocket.getSocketInfo(receiverId);
         if (receiverSocket) {
-            this.server.to(receiverId).emit('new-message', { messageData, chatId, isNewChat })
+            this.server.to(receiverId).emit('new-message', { messageData, chatId, isNewChat, isGroup })
         } else {
             console.log(`userId: ${receiverId} hiện tại không online`);
+        }
+    }
+
+    async handleEventSenderMessageGroup(payload: OutgoingMessageGroupDataDto) {
+        const { messageData, chatId, receiverId, isNewChat, isGroup } = payload;
+        const receiverSocket: (IUserInSocket[] | null)[] = await this.managerClientSocket.getSocketInfos(receiverId);
+        if (receiverSocket) {
+            this.server.to(receiverId).emit('new-message', { messageData, chatId, isNewChat, isGroup })
+        } else {
+            console.log('ko có người nào trong group online');
+            
         }
     }
 

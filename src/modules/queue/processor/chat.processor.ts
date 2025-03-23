@@ -2,7 +2,7 @@ import { Process, Processor } from '@nestjs/bull';
 import { Job } from 'bull';
 import { Logger } from '@nestjs/common';
 import { ChatGateway } from 'src/gateways/chat.gateway';
-import { OutgoingMessageDataDto } from 'src/modules/chat/dto/message.dto';
+import { OutgoingMessageDataDto, OutgoingMessageGroupDataDto } from 'src/modules/chat/dto/message.dto';
 import { JOB_CHAT } from '../queue.constants';
 
 @Processor(JOB_CHAT.NAME)
@@ -15,6 +15,11 @@ export class ChatProcessor {
     @Process(JOB_CHAT.NEW_MESSAGE)
     async handleSendMessage(job: Job<OutgoingMessageDataDto>) {
         return await this.chatGateway.handleEventSenderMessage(job.data)
+    }
+
+    @Process(JOB_CHAT.NEW_MESSAGE_GROUP)
+    async handleSendMessageGroup(job: Job<OutgoingMessageGroupDataDto>) {
+        return await this.chatGateway.handleEventSenderMessageGroup(job.data)
     }
 
 }
