@@ -7,17 +7,17 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { Message } from './entity/message.entity';
 import { Chat } from './entity/chat.entity';
 import { WsAuthGuard } from 'src/modules/auth/guard/wsAuth.guard';
-import { ManagerClientSocketService } from 'src/redis/services/managerClient.service';
 import { UserConversation } from './entity/userConversations.entity';
 import { UserConversationService } from './service/userConversation.service';
 import { CustomRedisModule } from 'src/redis/redis.module';
 import { QueueModule } from '../queue/queue.module';
 import { ChatGroups } from './entity/chatGroup.entity';
 import { ChatGroupService } from './service/chatGroup.service';
+import { GroupInvitations } from './entity/groupInvitations.entity';
 @Module({
   controllers: [ChatController],
   imports: [
-    TypeOrmModule.forFeature([Message, Chat, ChatGroups, UserConversation, ]),
+    TypeOrmModule.forFeature([Message, Chat, ChatGroups, UserConversation, GroupInvitations]),
     UserModule,
     CustomRedisModule,
     QueueModule,
