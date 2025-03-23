@@ -14,36 +14,39 @@ export class ChatGroupService {
         private readonly usersService: UserService,
     ) { }
 
-    async getChatGroupById(groupId: string):Promise<ChatDataDto> {
+    async getChatGroupById(groupId: string): Promise<ChatDataDto> {
         try {
             const chatGroup = await this.chatGroupRepository
-            .createQueryBuilder("cg")
-            .leftJoinAndSelect("cg.manager", "manager") 
-            .leftJoinAndSelect("cg.members", "mem") 
-            .leftJoinAndSelect("cg.messages", "msg") 
-            .leftJoinAndSelect("msg.author", "author") 
-            .where("cg.id = :groupId", { groupId })
-            .orderBy("msg.created_At", "ASC") 
-            .select([
-                "cg.id",
-                "cg.name",
-                "mem.id",
-                "mem.name",
-                "mem.avatar",
-                "mem.account",
-                "msg.id",
-                "msg.content",
-                "msg.created_At",
-                "author.id",
-                "author.name",
-                "author.avatar",
-                "author.account",
-            ])
-            .getOne();
+                .createQueryBuilder("cg")
+                .leftJoinAndSelect("cg.manager", "manager")
+                .leftJoinAndSelect("cg.members", "mem")
+                .leftJoinAndSelect("cg.messages", "msg")
+                .leftJoinAndSelect("msg.author", "author")
+                .where("cg.id = :groupId", { groupId })
+                .orderBy("msg.created_At", "ASC")
+                .select([
+                    "cg.id",
+                    "cg.name",
+                    "mem.id",
+                    "mem.name",
+                    "mem.avatar",
+                    "mem.account",
+                    "msg.id",
+                    "msg.content",
+                    "msg.created_At",
+                    "author.id",
+                    "author.name",
+                    "author.avatar",
+                    "author.account",
+                ])
+                .getOne();
+            if (!chatGroup) {
+                throw new NotFoundException('group not found');
+            }
             const isGroup = true
             return plainToInstance(ChatDataDto, { ...chatGroup, isGroup }, {
                 excludeExtraneousValues: true,
-            })               
+            })
         } catch (error) {
             throw new InternalServerErrorException('Lỗi máy chủ, vui lòng thử lại sau.');
         }

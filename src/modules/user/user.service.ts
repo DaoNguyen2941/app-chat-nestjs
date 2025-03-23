@@ -23,7 +23,7 @@ import { RedisCacheService } from 'src/redis/services/redisCache.service';
 import { InjectQueue } from '@nestjs/bull';
 import { Queue } from 'bull';
 import { generateOtp } from 'src/common/utils';
-
+import { typeUser } from './user.dto';
 @Injectable()
 export class UserService {
     constructor(
@@ -34,7 +34,7 @@ export class UserService {
         private readonly redisCacheService: RedisCacheService,
     ) { }
 
-    async getByIds(userIds: string[]) {
+    async getByIds(userIds: string[]): Promise<typeUser[]> {
         try {
             const users = await this.usersRepository.find({
                 where: { id: In(userIds) },
