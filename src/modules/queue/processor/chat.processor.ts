@@ -12,6 +12,16 @@ export class ChatProcessor {
         private readonly chatGateway: ChatGateway,
     ) { }
 
+    @Process(JOB_CHAT.NEW_GROUP_CHAT)
+    async newGroupChat(job: Job<{userIds: string[]}>) {
+        return await this.chatGateway.handleEventNewGroup(job.data.userIds)
+    }
+
+    @Process(JOB_CHAT.INVITE_TO_GROUP)
+    async inviteToGroup(job: Job<{inviteeIds: string[]}>) {
+        return await this.chatGateway.handeleInveteGroup(job.data.inviteeIds)
+    }
+
     @Process(JOB_CHAT.NEW_MESSAGE)
     async handleSendMessage(job: Job<OutgoingMessageDataDto>) {
         return await this.chatGateway.handleEventSenderMessage(job.data)

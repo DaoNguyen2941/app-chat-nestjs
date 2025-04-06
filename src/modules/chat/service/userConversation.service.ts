@@ -10,13 +10,16 @@ import { UserConversation } from '../entity/userConversations.entity';
 import { listChatDto } from '../dto/chat.dto';
 import { plainToInstance } from "class-transformer";
 import { ManagerClientSocketService } from 'src/redis/services/managerClient.service';
+import { InjectQueue } from '@nestjs/bull';
+import { JOB_CHAT } from 'src/modules/queue/queue.constants';
+import { Queue } from 'bull';
 @Injectable()
 export class UserConversationService {
     constructor(
         @InjectRepository(UserConversation)
         private readonly userConversationRepository: Repository<UserConversation>,
         private readonly managerClientSocketService: ManagerClientSocketService,
-
+        @InjectQueue(JOB_CHAT.NAME) private readonly chatQueue: Queue, 
     ) { }
 
     async readAllGroup(userId: string, chatGroupId: string) {
@@ -40,7 +43,7 @@ export class UserConversationService {
         return dataArray[0].newChat
     }
 
-    async UpdateUnreadGroupMessages(userId: string,chatId: string, memberIds: string[]) {
+    async UpdateUnreadGroupMessages(userId: string, chatId: string, memberIds: string[]) {
         const dataArray = await this.findAndCreate(userId, chatId, true, memberIds);
         const ConversationIds = dataArray.map(data => data.data.id)
         return await this.userConversationRepository.update(
@@ -57,10 +60,8 @@ export class UserConversationService {
         if (!conversation) {
             throw new NotFoundException('Cuộc trò chuyện không tồn tại');
         }
-
         // Chỉ cập nhật cột `unreadCount`, không cần cập nhật toàn bộ bản ghi
         await this.userConversationRepository.update(conversation.id, { unreadCount: 0 });
-
         return { message: "Đã đánh dấu tất cả tin nhắn là đã đọc" };
     }
 
@@ -82,11 +83,8 @@ export class UserConversationService {
         });
     }
 
-    async findAndCreate(userId: string, chatId: string, IsGroup: boolean, membersChat: string[] = []) {
+    async findAndCreate(userId: string, chatId: string, IsGroup: boolean = false, membersChat: string[] = [userId]) {
         try {
-            if (!IsGroup) {
-                membersChat = [userId];
-            }
             const conversations = await Promise.all(
                 membersChat.map(async (memberId) => {
                     const existingConversation = await this.getOneByChatIdAndUserId(chatId, memberId);
@@ -105,9 +103,39 @@ export class UserConversationService {
                     return { data: savedConversation, newChat: true };
                 })
             );
-
             return conversations;
+        } catch (error) {
+            console.error('Lỗi trong findAndCreate:', error);
+            throw new HttpException(
+                'Có lỗi xảy ra khi tạo cuộc trò chuyện',
+                HttpStatus.INTERNAL_SERVER_ERROR
+            );
+        }
+    }
 
+    async createAndSendEvent(userId: string, chatId: string, IsGroup: boolean = false, membersChat: string[] = [userId]) {
+        try {
+            const conversations = await Promise.all(
+                membersChat.map(async (memberId) => {
+                    const existingConversation = await this.getOneByChatIdAndUserId(chatId, memberId);
+                    if (existingConversation) {
+                        return { data: existingConversation, newChat: false };
+                    }
+                    const conversation = this.userConversationRepository.create({
+                        user: { id: memberId },
+                        [IsGroup ? 'chatGroup' : 'chat']: { id: chatId },
+                        IsGroup
+                    });
+                    const savedConversation = await this.userConversationRepository.save(conversation);
+                    return {
+                        data: savedConversation,
+                        newChat: true
+                    };
+                })
+            );
+            const userIds = membersChat.filter(id => id !== userId)
+            await this.chatQueue.add(JOB_CHAT.NEW_GROUP_CHAT, { userIds })
+            return conversations;
         } catch (error) {
             console.error('Lỗi trong findAndCreate:', error);
             throw new HttpException(

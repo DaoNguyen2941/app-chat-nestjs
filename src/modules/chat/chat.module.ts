@@ -14,6 +14,7 @@ import { QueueModule } from '../queue/queue.module';
 import { ChatGroups } from './entity/chatGroup.entity';
 import { ChatGroupService } from './service/chatGroup.service';
 import { GroupInvitations } from './entity/groupInvitations.entity';
+import { GroupInvitationsService } from './service/groupInvitations.service';
 @Module({
   controllers: [ChatController],
   imports: [
@@ -28,6 +29,7 @@ import { GroupInvitations } from './entity/groupInvitations.entity';
     UserConversationService,
     WsAuthGuard,
     ChatGroupService,
+    GroupInvitationsService,
   ]
 })
 export class ChatModule { }

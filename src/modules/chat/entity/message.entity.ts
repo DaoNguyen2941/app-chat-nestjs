@@ -18,11 +18,11 @@ export class Message extends BaseEntity {
   @JoinColumn({ name: "authorId" })
   author: Users;
 
-  @ManyToOne(() => Chat, (chat) => chat.message, { nullable: true })
+  @ManyToOne(() => Chat, (chat) => chat.message, { nullable: true,  onDelete: 'CASCADE' })
   @JoinColumn({ name: "chatId" })
   chat: Chat | null;
 
-  @ManyToOne(() => ChatGroups, (chatGroup) => chatGroup.messages, { nullable: true })
+  @ManyToOne(() => ChatGroups, (chatGroup) => chatGroup.messages, { nullable: true,  onDelete: 'CASCADE' })
   @JoinColumn({ name: "chatGroupId" })
   chatGroup: ChatGroups | null;
 }
