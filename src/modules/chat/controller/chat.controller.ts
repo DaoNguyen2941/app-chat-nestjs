@@ -8,8 +8,6 @@ import {
     Param,
 } from '@nestjs/common';
 import { IParamsId, IParamsUserId } from 'src/common/Interface';
-import { EventEmitter2 } from '@nestjs/event-emitter';
-import { InjectRepository } from '@nestjs/typeorm';
 import { MessageService } from '../service/message.service';
 import { ChatService } from '../service/chat.service';
 import { ChatDataDto, CreateChatDto2, ResCreateChatDto, listChatDto } from '../dto/chat.dto';
@@ -18,6 +16,9 @@ import { CustomUserInRequest } from 'src/modules/auth/auth.dto';
 import { UserConversationService } from '../service/userConversation.service';
 import { ChatGroupService } from '../service/chatGroup.service';
 import { CreateChatGroupDto, ChatGroupResponseDto } from '../dto/chatGroup.dto';
+import { GroupInvitationsService } from '../service/groupInvitations.service';
+import { InvitationStatusDto } from '../dto/invitations.dto';
+import { enumInvitationStatus } from '../dto/invitations.dto';
 @Controller('chat')
 export class ChatController {
     constructor(
@@ -25,18 +26,39 @@ export class ChatController {
         private readonly chatService: ChatService,
         private readonly conversationService: UserConversationService,
         private readonly chatGroupService: ChatGroupService,
+        private readonly invitationsService: GroupInvitationsService,
+
     ) { }
 
+    @Patch('group/invitation/:id')
+    async acceptInvitation(@Request() request: CustomUserInRequest,@Param() param: IParamsId,  @Body() data: InvitationStatusDto) {
+        const { id } = param;
+        const { user } = request;
+        const {message, action, chatGroupId} =  await this.invitationsService.updateInvitation(id,user.id,data.status);
+        if (action === enumInvitationStatus.ACCEPTED) {
+            const isGroup = true
+            await this.conversationService.findAndCreate(user.id,chatGroupId,isGroup);
+            await this.chatGroupService.addMemberToGroup(chatGroupId,user.id)
+        }
+        return {message}
+    }
+
+    @Get('group/invitation')
+    async getInvitationList(@Request() request: CustomUserInRequest,) {
+        const { user } = request;
+        return await this.invitationsService.getPendingInvitations(user.id)
+    }
+
     @Post('group/:id/message')
-    async sendMessageGroup(@Param() param: IParamsId, @Request() request: CustomUserInRequest,  @Body() data: createMesagerDto) {
+    async sendMessageGroup(@Param() param: IParamsId, @Request() request: CustomUserInRequest, @Body() data: createMesagerDto) {
         const { id } = param;
         const { user } = request;
         const groupData = await this.chatGroupService.getChatGroupById(id)
         const memberIds = groupData.members.map(user => user.id)
         const userIds = memberIds.filter(item => item !== user.id);
         console.log(userIds);
-        await this.conversationService.UpdateUnreadGroupMessages(user.id,id,userIds)
-        return await this.messageService.createMessageInGroup(id,data.content,user.id, userIds)
+        await this.conversationService.UpdateUnreadGroupMessages(user.id, id, userIds)
+        return await this.messageService.createMessageInGroup(id, data.content, user.id, userIds)
     }
 
     @Get('group/:id')
@@ -47,21 +69,29 @@ export class ChatController {
 
     @Patch('group/:id/unreadCount')
     async readAllMessagesGroup(@Param() param: IParamsId, @Request() request: CustomUserInRequest) {
-       
-        
         const { user } = request
         const { id } = param;
-        await this.chatGroupService.getChatGroupById(id)
-        return await this.conversationService.readAllGroup(user.id,id)
+        // await this.chatGroupService.getChatGroupById(id)
+        return await this.conversationService.readAllGroup(user.id, id)
     }
-   
+
 
     @Post('group')
     async createChatGroup(@Request() request: CustomUserInRequest, @Body() data: CreateChatGroupDto): Promise<ChatGroupResponseDto> {
         const { user } = request
-        const newGroup = await this.chatGroupService.createChatGroup(user.id, data)
-        const userIds = newGroup.members.map(user => user.id)
-        await this.conversationService.findAndCreate(user.id, newGroup.id, true, userIds);
+        const newGroup = await this.chatGroupService.createChatGroup(user.id, data.name)
+        const memberIds = newGroup.members.map(user => user.id)
+        await this.conversationService.findAndCreate(user.id,newGroup.id,true,memberIds)
+        await this.invitationsService.createMultipleInvites(user.id, data.members, newGroup.id)
+        return newGroup;
+    }
+
+    @Post('group/api2')
+    async createChatGroup2(@Request() request: CustomUserInRequest, @Body() data: CreateChatGroupDto): Promise<ChatGroupResponseDto> {
+        const { user } = request
+        const newGroup = await this.chatGroupService.createChatGroup2(user.id, data.name,data.members)
+        const memberIds = newGroup.members.map(user => user.id)
+        await this.conversationService.createAndSendEvent(user.id,newGroup.id,true,memberIds)
         return newGroup;
     }
 
@@ -70,7 +100,7 @@ export class ChatController {
         const { user } = request
         const { receiverId } = databody
         const chat = await this.chatService.createChat(user.id, receiverId)
-        const userConversation = await this.conversationService.findAndCreate(user.id, chat.id, false);
+        await this.conversationService.findAndCreate(user.id, chat.id, false);
         const data = await this.chatService.getchatById(chat.id, user.id)
         return data;
     }

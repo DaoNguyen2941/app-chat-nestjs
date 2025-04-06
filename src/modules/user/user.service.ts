@@ -34,6 +34,12 @@ export class UserService {
         private readonly redisCacheService: RedisCacheService,
     ) { }
 
+    async getAllDataUserById(userId: string) {
+        return await this.usersRepository.findOne({
+            where: { id: userId },
+        });
+    }
+
     async getByIds(userIds: string[]): Promise<typeUser[]> {
         try {
             const users = await this.usersRepository.find({
@@ -418,6 +424,7 @@ export class UserService {
                     avatar: true
                 }
             });
+            
             return plainToInstance(BasicUserDataDto, account, {
                 excludeExtraneousValues: true,
             })

@@ -4,7 +4,6 @@ import { Expose, Transform, Type } from "class-transformer";
 import { IsString, IsBoolean, IsNotEmpty, IsEnum, IsArray, IsNumber, } from 'class-validator';
 import { typeUser } from 'src/modules/user/user.dto';
 import { MessageDataDto } from './message.dto'
-import { read } from 'fs';
 
 export enum enumUserStatus {
     online = 'online',

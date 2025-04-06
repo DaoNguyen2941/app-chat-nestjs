@@ -25,6 +25,24 @@ export class ChatGateway {
     //     // Xử lý message
     // }
 
+    async handeleInveteGroup(userIds: string[]) {
+        const receiverSocket: (IUserInSocket[] | null)[] = await this.managerClientSocket.getSocketInfos(userIds);
+        if (receiverSocket) {
+            this.server.to(userIds).emit('invete-group', {message: "Có lời mời vào nhóm mới!"})
+        } else {
+            console.log('không tìm thấy người dùng');
+        }
+    }
+    
+    async handleEventNewGroup(userIds:string[]) {
+        const receiverSocket: (IUserInSocket[] | null)[] = await this.managerClientSocket.getSocketInfos(userIds);
+        if (receiverSocket) {
+            this.server.to(userIds).emit('new-group-chat', {message: "Có nhóm chát mới!"});
+        } else {
+            console.log('không tìm thấy người dùng');
+        }
+    }
+
     // @OnEvent('message-sender')
     async handleEventSenderMessage(payload: OutgoingMessageDataDto) {
         const { messageData, chatId, receiverId, isNewChat, isGroup } = payload;
@@ -43,7 +61,7 @@ export class ChatGateway {
             this.server.to(receiverId).emit('new-message', { messageData, chatId, isNewChat, isGroup })
         } else {
             console.log('ko có người nào trong group online');
-            
+
         }
     }
 

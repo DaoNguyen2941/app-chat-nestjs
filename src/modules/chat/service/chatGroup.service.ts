@@ -1,4 +1,11 @@
-import { Injectable, NotFoundException, HttpException, HttpStatus, InternalServerErrorException } from '@nestjs/common';
+import {
+    Injectable,
+    NotFoundException,
+    HttpException,
+    HttpStatus,
+    InternalServerErrorException,
+    BadRequestException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ChatGroups } from '../entity/chatGroup.entity';
@@ -13,6 +20,27 @@ export class ChatGroupService {
         private chatGroupRepository: Repository<ChatGroups>,
         private readonly usersService: UserService,
     ) { }
+
+    async addMemberToGroup(groupId: string, userId: string) {
+        const chatGroup = await this.chatGroupRepository.findOne({
+            where: { id: groupId },
+            relations: ['members'],
+        });
+
+        if (!chatGroup) {
+            throw new NotFoundException('Nhóm chat không tồn tại');
+        }
+        const user = await this.usersService.getAllDataUserById(userId)
+        if (!user) {
+            throw new NotFoundException('Người dùng không tồn tại');
+        }
+        if (chatGroup.members.some(member => member.id === userId)) {
+            throw new BadRequestException('Người dùng đã là thành viên của nhóm');
+        }
+        chatGroup.members.push(user);
+        await this.chatGroupRepository.save(chatGroup);
+        return { message: 'Thêm thành viên vào nhóm thành công' };
+    }
 
     async getChatGroupById(groupId: string): Promise<ChatDataDto> {
         try {
@@ -52,38 +80,66 @@ export class ChatGroupService {
         }
     }
 
-    async createChatGroup(userId: string, dto: CreateChatGroupDto) {
+    async createChatGroup(userId: string, name: string) {
         try {
-            const { name, members } = dto;
             const manager = await this.usersService.getById(userId);
             if (!manager) {
                 throw new HttpException('Manager không tồn tại', HttpStatus.BAD_REQUEST);
             }
-            members.unshift(userId)
-            const users = await this.usersService.getByIds(members);;
-            if (users.length !== members.length) {
-                throw new HttpException('Một số người dùng không tồn tại', HttpStatus.BAD_REQUEST);
+            const users = await this.usersService.getByIds([userId]);
+
+            if (!users.length) {
+                throw new HttpException('Người quản lý không tồn tại', HttpStatus.BAD_REQUEST);
             }
             const chatGroup = this.chatGroupRepository.create({
                 name,
                 manager,
                 members: users,
-            })
+            });
+
             const saveData = await this.chatGroupRepository.save(chatGroup);
             return plainToInstance(ChatGroupResponseDto, saveData, {
                 excludeExtraneousValues: true,
-            })
+            });
         } catch (error) {
             if (error instanceof HttpException) {
                 throw error;
             }
-            throw new HttpException(
-                'Lỗi khi tạo nhóm chat',
-                HttpStatus.INTERNAL_SERVER_ERROR,
-            );
+            throw new HttpException('Lỗi khi tạo nhóm chat', HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
+    async createChatGroup2(userId: string, name: string, memberIds: string[]) {
+        try {
+            const manager = await this.usersService.getById(userId);
+            if (!manager) {
+                throw new HttpException('Manager không tồn tại', HttpStatus.BAD_REQUEST);
+            }
+            if (!memberIds.includes(userId)) {
+                memberIds.unshift(userId);
+            }
+            const users = await this.usersService.getByIds(memberIds);
+
+            if (!users.length) {
+                throw new HttpException('Người quản lý không tồn tại', HttpStatus.BAD_REQUEST);
+            }
+            const chatGroup = this.chatGroupRepository.create({
+                name,
+                manager,
+                members: users,
+            });
+
+            const saveData = await this.chatGroupRepository.save(chatGroup);
+            return plainToInstance(ChatGroupResponseDto, saveData, {
+                excludeExtraneousValues: true,
+            });
+        } catch (error) {
+            if (error instanceof HttpException) {
+                throw error;
+            }
+            throw new HttpException('Lỗi khi tạo nhóm chat', HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
 }
 
 
