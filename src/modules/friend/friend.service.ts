@@ -87,7 +87,7 @@ export class FriendService {
         }
     }
 
-    async getFriendRequests2(userId: string): Promise<FriendRequestDto[]> {
+    async getFriendRequests(userId: string): Promise<FriendRequestDto[]> {
         try {
             const DataReqFriend = await this.friendRepository
                 .createQueryBuilder("friend")
@@ -97,6 +97,8 @@ export class FriendService {
                     "friend.status",
                     "friend.id",
                     "sender.id",
+                    "sender.avatar",
+                    "sender.name",
                     "sender.account",
                 ])
                 .getMany();
@@ -108,30 +110,6 @@ export class FriendService {
         }
 
     }
-
-    async getFriendRequests(userId: string): Promise<FriendRequestDto[]> {
-        const friendRequests = await this.friendRepository.find({
-            where: {
-                receiver: { id: userId },
-                status: "Pending",
-            },
-            // relations: {
-            //     sender: true,
-            // },
-            select: {
-                status: true,
-                id: true,
-                sender: {
-                    id: true,
-                    account: true,
-                }
-            }
-        })
-        return plainToInstance(FriendRequestDto, friendRequests, {
-            excludeExtraneousValues: true
-        })
-    }
-
 
     async getFriendsList(userId: string) {
         try {
@@ -147,6 +125,8 @@ export class FriendService {
                     sender: {
                         id: true,
                         account: true,
+                        avatar: true,
+                        name: true
                     },
                     receiver: {
                         id: true,

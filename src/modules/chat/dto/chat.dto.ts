@@ -4,7 +4,6 @@ import { Expose, Transform, Type } from "class-transformer";
 import { IsString, IsBoolean, IsNotEmpty, IsEnum, IsArray, IsNumber, } from 'class-validator';
 import { typeUser } from 'src/modules/user/user.dto';
 import { MessageDataDto } from './message.dto'
-import { read } from 'fs';
 
 export enum enumUserStatus {
     online = 'online',
@@ -79,9 +78,7 @@ export class ChatDataDto extends PickType(ChatData, ['id', 'isGroup','name','mem
     @Expose()
     @Type(() => MessageDataDto)
     @Transform(({ obj }) => {
-        console.log(obj);
         const message = obj.message || obj.messages;
-        console.log(message);
         return message
     })
     message: MessageDataDto[] ;

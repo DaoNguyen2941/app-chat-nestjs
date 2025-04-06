@@ -23,7 +23,7 @@ import { RedisCacheService } from 'src/redis/services/redisCache.service';
 import { InjectQueue } from '@nestjs/bull';
 import { Queue } from 'bull';
 import { generateOtp } from 'src/common/utils';
-
+import { typeUser } from './user.dto';
 @Injectable()
 export class UserService {
     constructor(
@@ -34,7 +34,13 @@ export class UserService {
         private readonly redisCacheService: RedisCacheService,
     ) { }
 
-    async getByIds(userIds: string[]) {
+    async getAllDataUserById(userId: string) {
+        return await this.usersRepository.findOne({
+            where: { id: userId },
+        });
+    }
+
+    async getByIds(userIds: string[]): Promise<typeUser[]> {
         try {
             const users = await this.usersRepository.find({
                 where: { id: In(userIds) },
@@ -51,19 +57,14 @@ export class UserService {
 
     async setLastSeen(userId: string, time: Date | null) {
         try {
-            console.log('🔄 Đang cập nhật last seen cho user:', userId);
-
             const result = await this.usersRepository
                 .createQueryBuilder()
                 .update(Users)
                 .set({ lastSeen: time }) // time có thể là null
                 .where("id = :userId", { userId })
                 .execute();
-
-            console.log(`✅ Cập nhật lastSeen thành công cho userId: ${userId}`);
             return result;
         } catch (error) {
-            console.error(`❌ Lỗi khi cập nhật lastSeen cho userId: ${userId}`, error);
             throw new Error(`Không thể cập nhật lastSeen cho user ${userId}`);
         }
     }
@@ -423,6 +424,7 @@ export class UserService {
                     avatar: true
                 }
             });
+            
             return plainToInstance(BasicUserDataDto, account, {
                 excludeExtraneousValues: true,
             })

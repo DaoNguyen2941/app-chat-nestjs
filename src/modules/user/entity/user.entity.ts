@@ -4,7 +4,7 @@ import { Peer } from './peer.entity';
 import { Chat } from 'src/modules/chat/entity/chat.entity';
 import { UserConversation } from 'src/modules/chat/entity/userConversations.entity';
 import { BaseEntity } from 'src/common/baseEntity';
-
+import { GroupInvitations } from 'src/modules/chat/entity/groupInvitations.entity';
 @Entity()
 export class Users extends BaseEntity {
   @Column({ type: "varchar", nullable: false, unique: true })
@@ -40,4 +40,11 @@ export class Users extends BaseEntity {
 
   @Column({ type: 'datetime', nullable: true, })
   lastSeen: Date | null;
+
+  @OneToMany(() => GroupInvitations, (invitation) => invitation.invitedBy)
+  sentInvitations: GroupInvitations[];
+
+  @OneToMany(() => GroupInvitations, (invitation) => invitation.invitee)
+  receivedInvitations: GroupInvitations[];
+  
 }
