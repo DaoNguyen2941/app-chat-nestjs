@@ -5,21 +5,109 @@ import {
     HttpStatus,
     InternalServerErrorException,
     BadRequestException,
+    ForbiddenException
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, DataSource } from 'typeorm';
 import { ChatGroups } from '../entity/chatGroup.entity';
 import { UserService } from 'src/modules/user/user.service';
 import { CreateChatGroupDto, ChatGroupResponseDto } from '../dto/chatGroup.dto';
 import { plainToInstance } from 'class-transformer';
 import { ChatDataDto } from '../dto/chat.dto';
+import { UserConversation } from '../entity/userConversations.entity';
+
 @Injectable()
 export class ChatGroupService {
     constructor(
+        private readonly dataSource: DataSource,
         @InjectRepository(ChatGroups)
         private chatGroupRepository: Repository<ChatGroups>,
         private readonly usersService: UserService,
     ) { }
+    async kickMemberFromGroup(groupId: string, userIdToKick: string) {
+        return await this.dataSource.transaction(async (manager) => {
+          const chatGroupRepo = manager.getRepository(ChatGroups);
+          const userConversationRepo = manager.getRepository(UserConversation);
+      
+          // 1. Tìm nhóm và members
+          const group = await chatGroupRepo.findOne({
+            where: { id: groupId },
+            relations: ['members'],
+          });
+      
+          if (!group) {
+            throw new NotFoundException('Nhóm không tồn tại');
+          }
+      
+          // 2. Kiểm tra thành viên có trong nhóm không
+          const isMember = group.members.some(member => member.id === userIdToKick);
+          if (!isMember) {
+            throw new BadRequestException('Người dùng không thuộc nhóm');
+          }
+      
+          // 3. Xóa khỏi danh sách thành viên
+          group.members = group.members.filter(member => member.id !== userIdToKick);
+          const saveGroupPromise = chatGroupRepo.save(group);
+      
+          // 4. Xoá bản ghi UserConversation
+          const deleteUserConversationPromise = userConversationRepo.delete({
+            user: { id: userIdToKick },
+            chatGroup: { id: groupId },
+          });
+      
+          await Promise.all([saveGroupPromise, deleteUserConversationPromise]);
+      
+          return { success: true, message: 'Đã kích người dùng khỏi nhóm thành công' };
+        });
+      }
+      
+      
+
+    async findByIdWithManager(groupId: string) {
+        return await this.chatGroupRepository.findOne({
+          where: { id: groupId },
+          relations: ['manager'],
+        });
+      }
+
+    async leaveGroup(userId: string, groupId: string) {
+        return await this.dataSource.transaction(async (manager) => {
+            const userConversationRepo = manager.getRepository(UserConversation);
+            const chatGroupRepo = manager.getRepository(ChatGroups);
+
+            const record = await userConversationRepo.findOne({
+                where: {
+                    user: { id: userId },
+                    chatGroup: { id: groupId },
+                },
+                relations: ['user', 'chatGroup'],
+            });
+
+            if (!record) {
+                throw new NotFoundException('Không tìm thấy UserConversation');
+            }
+
+            await userConversationRepo.remove(record);
+
+            const group = await chatGroupRepo.findOne({
+                where: { id: groupId },
+                relations: ['members', 'manager'],
+            });
+
+            if (!group) {
+                throw new NotFoundException('Nhóm không tồn tại');
+            }
+
+            if (group.manager.id === userId) {
+                throw new BadRequestException('Quản trị viên không thể rời nhóm');
+            }
+
+            group.members = group.members.filter((member) => member.id !== userId);
+            await chatGroupRepo.save(group);
+
+            return { success: true, message: 'Rời nhóm thành công' };
+        });
+    }
 
     async addMemberToGroup(groupId: string, userId: string) {
         const chatGroup = await this.chatGroupRepository.findOne({

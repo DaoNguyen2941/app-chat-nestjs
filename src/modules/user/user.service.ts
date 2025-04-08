@@ -24,6 +24,7 @@ import { InjectQueue } from '@nestjs/bull';
 import { Queue } from 'bull';
 import { generateOtp } from 'src/common/utils';
 import { typeUser } from './user.dto';
+
 @Injectable()
 export class UserService {
     constructor(
@@ -33,6 +34,14 @@ export class UserService {
         @InjectQueue('mail-queue') private readonly mailQueue: Queue,
         private readonly redisCacheService: RedisCacheService,
     ) { }
+
+    async setNameUser(userId: string, name: string) {
+        const result = await this.usersRepository.update({ id: userId }, { name });
+        if (result.affected === 0) {
+            throw new NotFoundException('User not found');
+        }
+        return { success: true };
+    }
 
     async getAllDataUserById(userId: string) {
         return await this.usersRepository.findOne({
@@ -259,7 +268,8 @@ export class UserService {
                 select: {
                     account: true,
                     email: true,
-                    id: true
+                    id: true,
+                    avatar: true
                 }
             })
             if (!account) {
@@ -268,7 +278,8 @@ export class UserService {
             const payload = {
                 sub: account.id,
                 email: account.email,
-                account: account.account
+                account: account.account,
+                avatar: account.avatar
             }
 
             const token = this.jwtService.sign(payload);
@@ -424,7 +435,7 @@ export class UserService {
                     avatar: true
                 }
             });
-            
+
             return plainToInstance(BasicUserDataDto, account, {
                 excludeExtraneousValues: true,
             })

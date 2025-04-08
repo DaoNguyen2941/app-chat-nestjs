@@ -18,6 +18,7 @@ import {
     UserDataInReq,
     ConfirmOtpDto,
     resetPasswordDto,
+    NameUserDto,
 } from "./user.dto";
 import { plainToInstance } from "class-transformer";
 import { SkipAuth } from "src/common/decorate/skipAuth";
@@ -29,6 +30,13 @@ export class UserController {
     constructor(
         private readonly userService: UserService,
     ) { }
+
+    @Post(`/name`)
+    updateNameUser(@Request() request: CustomUserInRequest, @Body() data:NameUserDto) {
+        const { user } = request
+        const { name } = data
+        return this.userService.setNameUser(user.id, name)
+    }
 
     @Get(`/search/:keyword`)
     async searchUser(@Param() param:IParamsKeyWord, @Request() request: CustomUserInRequest) {

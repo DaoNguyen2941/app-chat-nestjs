@@ -6,6 +6,8 @@ import {
     Request,
     Get,
     Param,
+    Delete,
+    Query,
 } from '@nestjs/common';
 import { IParamsId, IParamsUserId } from 'src/common/Interface';
 import { MessageService } from '../service/message.service';
@@ -19,6 +21,8 @@ import { CreateChatGroupDto, ChatGroupResponseDto } from '../dto/chatGroup.dto';
 import { GroupInvitationsService } from '../service/groupInvitations.service';
 import { InvitationStatusDto } from '../dto/invitations.dto';
 import { enumInvitationStatus } from '../dto/invitations.dto';
+import { UseGuards } from '@nestjs/common';
+import { IsGroupManagerGuard } from 'src/modules/auth/guard/is-group-manager.guard';
 @Controller('chat')
 export class ChatController {
     constructor(
@@ -27,20 +31,43 @@ export class ChatController {
         private readonly conversationService: UserConversationService,
         private readonly chatGroupService: ChatGroupService,
         private readonly invitationsService: GroupInvitationsService,
-
     ) { }
 
-    @Patch('group/invitation/:id')
-    async acceptInvitation(@Request() request: CustomUserInRequest,@Param() param: IParamsId,  @Body() data: InvitationStatusDto) {
+    @Delete(':id')
+    async softDeleteConversation(
+        @Param() param: IParamsId,@Query('isGroup') isGroup: string, @Request() request: CustomUserInRequest,) {
         const { id } = param;
         const { user } = request;
-        const {message, action, chatGroupId} =  await this.invitationsService.updateInvitation(id,user.id,data.status);
+        const isGroupBool = isGroup === 'true';
+        return await this.conversationService.softDeleteConversation(user.id, id, isGroupBool);
+    }
+
+    @Post('group/:id/kick/:userId')
+    @UseGuards(IsGroupManagerGuard)
+    async kickMember(@Param() param: IParamsId, @Param('userId') userId: string) {
+        const { id } = param;
+        return await this.chatGroupService.kickMemberFromGroup(id, userId,);
+    }
+
+    @Post('group/:id/leave')
+    async leaveGroup(
+        @Param() param: IParamsId, @Request() request: CustomUserInRequest) {
+        const { id } = param;
+        const { user } = request;
+        return await this.chatGroupService.leaveGroup(id, user.id);
+    }
+
+    @Patch('group/invitation/:id')
+    async acceptInvitation(@Request() request: CustomUserInRequest, @Param() param: IParamsId, @Body() data: InvitationStatusDto) {
+        const { id } = param;
+        const { user } = request;
+        const { message, action, chatGroupId } = await this.invitationsService.updateInvitation(id, user.id, data.status);
         if (action === enumInvitationStatus.ACCEPTED) {
             const isGroup = true
-            await this.conversationService.findAndCreate(user.id,chatGroupId,isGroup);
-            await this.chatGroupService.addMemberToGroup(chatGroupId,user.id)
+            await this.conversationService.findAndCreate(user.id, chatGroupId, isGroup);
+            await this.chatGroupService.addMemberToGroup(chatGroupId, user.id)
         }
-        return {message}
+        return { message }
     }
 
     @Get('group/invitation')
@@ -81,7 +108,7 @@ export class ChatController {
         const { user } = request
         const newGroup = await this.chatGroupService.createChatGroup(user.id, data.name)
         const memberIds = newGroup.members.map(user => user.id)
-        await this.conversationService.findAndCreate(user.id,newGroup.id,true,memberIds)
+        await this.conversationService.findAndCreate(user.id, newGroup.id, true, memberIds)
         await this.invitationsService.createMultipleInvites(user.id, data.members, newGroup.id)
         return newGroup;
     }
@@ -89,9 +116,9 @@ export class ChatController {
     @Post('group/api2')
     async createChatGroup2(@Request() request: CustomUserInRequest, @Body() data: CreateChatGroupDto): Promise<ChatGroupResponseDto> {
         const { user } = request
-        const newGroup = await this.chatGroupService.createChatGroup2(user.id, data.name,data.members)
+        const newGroup = await this.chatGroupService.createChatGroup2(user.id, data.name, data.members)
         const memberIds = newGroup.members.map(user => user.id)
-        await this.conversationService.createAndSendEvent(user.id,newGroup.id,true,memberIds)
+        await this.conversationService.createAndSendEvent(user.id, newGroup.id, true, memberIds)
         return newGroup;
     }
 

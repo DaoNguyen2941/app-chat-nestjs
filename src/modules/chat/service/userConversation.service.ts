@@ -19,8 +19,58 @@ export class UserConversationService {
         @InjectRepository(UserConversation)
         private readonly userConversationRepository: Repository<UserConversation>,
         private readonly managerClientSocketService: ManagerClientSocketService,
-        @InjectQueue(JOB_CHAT.NAME) private readonly chatQueue: Queue, 
+        @InjectQueue(JOB_CHAT.NAME) private readonly chatQueue: Queue,
     ) { }
+
+    async softDeleteConversation(userId: string, chatId: string, isGroup: boolean) {
+        const whereCondition: any = {
+          user: { id: userId },
+        };
+      
+        if (isGroup) {
+          whereCondition.chatGroup = { id: chatId };
+        } else {
+          whereCondition.chat = { id: chatId };
+        }
+      
+        const record = await this.userConversationRepository.findOne({
+          where: whereCondition,
+          relations: ['user', 'chatGroup', 'chat'],
+        });
+      
+        if (!record) {
+          throw new NotFoundException('Không tìm thấy bản ghi UserConversation');
+        }
+      
+        record.isDeleted = true;
+        record.startTime = new Date();
+      
+        await this.userConversationRepository.save(record);
+        return { message: 'Đã ẩn cuộc trò chuyện thành công' };
+      }
+      
+
+    
+    async delete(userId: string, chatId: string, isGroup: boolean) {
+        const whereCondition: any = {
+          user: { id: userId },
+        };
+        if (isGroup) {
+          whereCondition.chatGroup = { id: chatId };
+        } else {
+          whereCondition.chat = { id: chatId };
+        }
+        const record = await this.userConversationRepository.findOne({
+          where: whereCondition,
+          relations: ['user', 'chatGroup', 'chat'],
+        });
+        if (!record) {
+          throw new NotFoundException('Không tìm thấy bản ghi UserConversation');
+        }
+        await this.userConversationRepository.remove(record);
+        return { message: 'Đã xóa bản ghi UserConversation thành công' };
+      }
+      
 
     async readAllGroup(userId: string, chatGroupId: string) {
         const conversation = await this.userConversationRepository.findOne({
