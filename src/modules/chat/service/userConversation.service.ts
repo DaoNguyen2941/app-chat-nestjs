@@ -13,6 +13,7 @@ import { ManagerClientSocketService } from 'src/redis/services/managerClient.ser
 import { InjectQueue } from '@nestjs/bull';
 import { JOB_CHAT } from 'src/modules/queue/queue.constants';
 import { Queue } from 'bull';
+import { IGroupConversationResult } from '../interface';
 @Injectable()
 export class UserConversationService {
     constructor(
@@ -22,55 +23,75 @@ export class UserConversationService {
         @InjectQueue(JOB_CHAT.NAME) private readonly chatQueue: Queue,
     ) { }
 
+    async getStartTime(
+        chatId: string, userId: string, isGroup: boolean,): Promise<Date | null> {
+        try {
+            const whereCondition = isGroup
+                ? { user: { id: userId }, chatGroup: { id: chatId } }
+                : { user: { id: userId }, chat: { id: chatId } };
+
+            const userConv = await this.userConversationRepository.findOne({
+                where: whereCondition,
+                select: ['id', 'startTime'],
+            });
+            return userConv?.startTime ?? null;
+        } catch (error) {
+            console.error('Lỗi khi lấy startTime:', error);
+            return null;
+        }
+    }
+
     async softDeleteConversation(userId: string, chatId: string, isGroup: boolean) {
         const whereCondition: any = {
-          user: { id: userId },
+            user: { id: userId },
         };
-      
+
         if (isGroup) {
-          whereCondition.chatGroup = { id: chatId };
+            whereCondition.chatGroup = { id: chatId };
         } else {
-          whereCondition.chat = { id: chatId };
+            whereCondition.chat = { id: chatId };
         }
-      
+
         const record = await this.userConversationRepository.findOne({
-          where: whereCondition,
-          relations: ['user', 'chatGroup', 'chat'],
+            where: whereCondition,
+            relations: ['user', 'chatGroup', 'chat'],
+
         });
-      
+
         if (!record) {
-          throw new NotFoundException('Không tìm thấy bản ghi UserConversation');
+            throw new NotFoundException('Không tìm thấy bản ghi UserConversation');
         }
-      
+
         record.isDeleted = true;
         record.startTime = new Date();
-      
+
         await this.userConversationRepository.save(record);
         return { message: 'Đã ẩn cuộc trò chuyện thành công' };
-      }
-      
+    }
 
-    
+
+
     async delete(userId: string, chatId: string, isGroup: boolean) {
         const whereCondition: any = {
-          user: { id: userId },
+            user: { id: userId },
         };
         if (isGroup) {
-          whereCondition.chatGroup = { id: chatId };
+            whereCondition.chatGroup = { id: chatId };
         } else {
-          whereCondition.chat = { id: chatId };
+            whereCondition.chat = { id: chatId };
         }
         const record = await this.userConversationRepository.findOne({
-          where: whereCondition,
-          relations: ['user', 'chatGroup', 'chat'],
+            where: whereCondition,
+            relations: ['user', 'chatGroup', 'chat'],
+            select: ['id', 'chatGroup', 'chat']
         });
         if (!record) {
-          throw new NotFoundException('Không tìm thấy bản ghi UserConversation');
+            throw new NotFoundException('Không tìm thấy bản ghi');
         }
         await this.userConversationRepository.remove(record);
-        return { message: 'Đã xóa bản ghi UserConversation thành công' };
-      }
-      
+        return { message: 'Đã xóa đoạn hội thoại thành công' };
+    }
+
 
     async readAllGroup(userId: string, chatGroupId: string) {
         const conversation = await this.userConversationRepository.findOne({
@@ -93,13 +114,22 @@ export class UserConversationService {
         return dataArray[0].newChat
     }
 
-    async UpdateUnreadGroupMessages(userId: string, chatId: string, memberIds: string[]) {
-        const dataArray = await this.findAndCreate(userId, chatId, true, memberIds);
-        const ConversationIds = dataArray.map(data => data.data.id)
-        return await this.userConversationRepository.update(
+    async initOrUpdateGroupConversations(userId: string, chatId: string, memberIds: string[]): Promise<IGroupConversationResult> {
+        const data = await this.findAndCreate(userId, chatId, true, memberIds);
+        const ConversationIds = data.map(data => data.data.id)
+        await this.userConversationRepository.update(
             { id: In(ConversationIds) },
             { unreadCount: () => "unreadCount + 1" }
-        );
+        );        
+        const newChatUserIds = data.filter(item => item.newChat === true)
+        .map(item => item.data.user.id)
+        const usersWithExistingChat = data.filter(item => item.newChat === false)
+        .map(item => item.data.user.id)
+
+        return {
+            newChatUserIds,
+            usersWithExistingChat
+        }
     }
 
     async readAll(chatId: string, userId: string) {
@@ -122,6 +152,11 @@ export class UserConversationService {
                 { user: { id: userId }, chat: { id: chatId } },
                 { user: { id: userId }, chatGroup: { id: chatId } }  // Dùng `OR` để kiểm tra cả 2 trường hợp
             ],
+            relations: {
+                chat: true,
+                user:true,
+                chatGroup:true
+            },
             select: {
                 id: true,
                 chat: { id: true },
@@ -137,18 +172,19 @@ export class UserConversationService {
         try {
             const conversations = await Promise.all(
                 membersChat.map(async (memberId) => {
-                    const existingConversation = await this.getOneByChatIdAndUserId(chatId, memberId);
-
+                    const existingConversation = await this.getOneByChatIdAndUserId(chatId, memberId);                    
                     if (existingConversation) {
                         return { data: existingConversation, newChat: false };
                     }
+                    const now = new Date();
+                    now.setMilliseconds(now.getMilliseconds() - 1000);
 
                     const conversation = this.userConversationRepository.create({
                         user: { id: memberId },
                         [IsGroup ? 'chatGroup' : 'chat']: { id: chatId },
-                        IsGroup
+                        IsGroup,
+                        startTime: now
                     });
-
                     const savedConversation = await this.userConversationRepository.save(conversation);
                     return { data: savedConversation, newChat: true };
                 })
@@ -174,7 +210,8 @@ export class UserConversationService {
                     const conversation = this.userConversationRepository.create({
                         user: { id: memberId },
                         [IsGroup ? 'chatGroup' : 'chat']: { id: chatId },
-                        IsGroup
+                        IsGroup,
+                        startTime: new Date()
                     });
                     const savedConversation = await this.userConversationRepository.save(conversation);
                     return {

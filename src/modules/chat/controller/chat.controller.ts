@@ -23,6 +23,7 @@ import { InvitationStatusDto } from '../dto/invitations.dto';
 import { enumInvitationStatus } from '../dto/invitations.dto';
 import { UseGuards } from '@nestjs/common';
 import { IsGroupManagerGuard } from 'src/modules/auth/guard/is-group-manager.guard';
+import { IGroupConversationResult } from '../interface';
 @Controller('chat')
 export class ChatController {
     constructor(
@@ -35,11 +36,11 @@ export class ChatController {
 
     @Delete(':id')
     async softDeleteConversation(
-        @Param() param: IParamsId,@Query('isGroup') isGroup: string, @Request() request: CustomUserInRequest,) {
+        @Param() param: IParamsId, @Query('isGroup') isGroup: string, @Request() request: CustomUserInRequest,) {
         const { id } = param;
         const { user } = request;
         const isGroupBool = isGroup === 'true';
-        return await this.conversationService.softDeleteConversation(user.id, id, isGroupBool);
+        return await this.conversationService.delete(user.id, id, isGroupBool)
     }
 
     @Post('group/:id/kick/:userId')
@@ -54,7 +55,7 @@ export class ChatController {
         @Param() param: IParamsId, @Request() request: CustomUserInRequest) {
         const { id } = param;
         const { user } = request;
-        return await this.chatGroupService.leaveGroup(id, user.id);
+        return await this.chatGroupService.leaveGroup(user.id, id);
     }
 
     @Patch('group/invitation/:id')
@@ -80,18 +81,18 @@ export class ChatController {
     async sendMessageGroup(@Param() param: IParamsId, @Request() request: CustomUserInRequest, @Body() data: createMesagerDto) {
         const { id } = param;
         const { user } = request;
-        const groupData = await this.chatGroupService.getChatGroupById(id)
+        const groupData = await this.chatGroupService.getChatGroupById(id, user.id)
         const memberIds = groupData.members.map(user => user.id)
         const userIds = memberIds.filter(item => item !== user.id);
-        console.log(userIds);
-        await this.conversationService.UpdateUnreadGroupMessages(user.id, id, userIds)
-        return await this.messageService.createMessageInGroup(id, data.content, user.id, userIds)
+        const groupConversationMeta = await this.conversationService.initOrUpdateGroupConversations(user.id, id, userIds)
+        return await this.messageService.createMessageInGroup(id, data.content, user.id,groupConversationMeta)
     }
 
     @Get('group/:id')
-    async getChatGroupData(@Param() param: IParamsId) {
+    async getChatGroupData(@Param() param: IParamsId, @Request() request: CustomUserInRequest,) {
         const { id } = param;
-        return await this.chatGroupService.getChatGroupById(id)
+        const { user } = request;
+        return await this.chatGroupService.getChatGroupById(id, user.id)
     }
 
     @Patch('group/:id/unreadCount')
@@ -147,12 +148,12 @@ export class ChatController {
     }
 
     @Post(':id/message')
-    async senderMessage(@Body() databody: createMesagerDto, @Param() param: IParamsId, @Request() request: CustomUserInRequest) {
+    async sendMessage(@Body() databody: createMesagerDto, @Param() param: IParamsId, @Request() request: CustomUserInRequest) {
         const { user } = request;
         const { content } = databody;
         const chat = await this.chatService.getchatById(param.id, user.id);
         const isNewChat = await this.conversationService.UpdateUnreadMessages(chat.id, chat.user.id)
-        return this.messageService.createMessage(content, chat, user.id, isNewChat);
+        return await this.messageService.createMessage(content, chat, user.id, isNewChat);
     }
 
     @Patch(':id/unreadCount')

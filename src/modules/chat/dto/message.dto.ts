@@ -30,19 +30,3 @@ class BasicMessageDataDto {
 export class createMesagerDto extends PickType(BasicMessageDataDto, [`content`]) {}
 
 export class MessageDataDto extends PickType(BasicMessageDataDto, ['id', 'author', 'content','created_At']) {};
-
-export class OutgoingMessageDataDto {
-    messageData: MessageDataDto;
-    chatId:string;
-    receiverId:string ;
-    isNewChat: boolean;
-    isGroup: boolean
-}
-
-export class OutgoingMessageGroupDataDto {
-    messageData: MessageDataDto;
-    chatId:string;
-    receiverId:string[];
-    isNewChat: boolean;
-    isGroup: boolean
-}

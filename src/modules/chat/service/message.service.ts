@@ -7,15 +7,16 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, QueryFailedError } from 'typeorm';
 import { Message } from '../entity/message.entity';
-import { MessageDataDto, OutgoingMessageDataDto, OutgoingMessageGroupDataDto } from '../dto/message.dto';
+import { MessageDataDto, } from '../dto/message.dto';
 import { ChatService } from './chat.service';
 import { EVENT_CHAT } from 'src/redis/redis.constants';
 import { InjectQueue } from '@nestjs/bull';
 import { Queue } from 'bull';
 import { JOB_CHAT } from 'src/modules/queue/queue.constants';
 import { ChatGroupService } from './chatGroup.service';
-import { ChatGroupDto , ResCreateChatDto} from '../dto/chat.dto';
-
+import { ChatGroupDto, ResCreateChatDto } from '../dto/chat.dto';
+import { IGroupConversationResult } from '../interface';
+import { IOutgoingMessageData, IOutgoingMessageGroupData } from '../interface';
 @Injectable()
 export class MessageService {
     constructor(
@@ -26,9 +27,8 @@ export class MessageService {
         private readonly chatGroupService: ChatGroupService,
     ) { }
 
-    async createMessageInGroup(groupId: string, content: string, userId: string, memberIds: string[]) {
+    async createMessageInGroup(groupId: string, content: string, userId: string,ConversationMeta: IGroupConversationResult): Promise<MessageDataDto> {
         try {
-            const chatData = await this.chatGroupService.getChatGroupById(groupId);
             const newMessage = this.messageRepository.create({
                 chatGroup: { id: groupId },
                 content: content,
@@ -42,13 +42,12 @@ export class MessageService {
                     HttpStatus.INTERNAL_SERVER_ERROR
                 );
             }
-            
-            const senderData: OutgoingMessageGroupDataDto = {
+
+            const senderData: IOutgoingMessageGroupData = {
                 messageData: messageData,
                 chatId: groupId,
-                receiverId: memberIds,
-                isNewChat: false,
-                isGroup: true
+                receiverId: ConversationMeta,
+                isGroup: true,
             }
             await this.chatQueue.add(JOB_CHAT.NEW_MESSAGE_GROUP, senderData)
             return messageData
@@ -66,7 +65,7 @@ export class MessageService {
             );
         }
     }
-    
+
     async createMessage(content: string, chatData: ResCreateChatDto, userId: string, isNewChat: boolean) {
         try {
             const newMessage = this.messageRepository.create({
@@ -82,7 +81,7 @@ export class MessageService {
                     HttpStatus.INTERNAL_SERVER_ERROR
                 );
             }
-            const senderData: OutgoingMessageDataDto = {
+            const senderData: IOutgoingMessageData = {
                 messageData: messageData,
                 chatId: chatData.id,
                 receiverId: chatData.user.id,
@@ -90,8 +89,6 @@ export class MessageService {
                 isGroup: false,
             }
             await this.chatQueue.add(JOB_CHAT.NEW_MESSAGE, senderData)
-            // this.eventEmitter.emit('message-sender', senderData)
-            // this.pubService.publishEvent(EVENT_CHAT.NEW_MESSAGE, senderData)
             return messageData
         } catch (error) {
             if (error instanceof QueryFailedError) {

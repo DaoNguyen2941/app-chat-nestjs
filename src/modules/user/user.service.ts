@@ -178,20 +178,17 @@ export class UserService {
 
     async resetPassword(userId: string, password: string) {
         const passwordHash = await hashData(password);
-        await this.usersRepository.update(
+        return await this.usersRepository.update(
             { id: userId },
             {
                 password: passwordHash
             });
-        return {
-            message: "đặt lại mật khẩu thành công!"
-        }
     }
 
     public createCookieResetPassword(userId: string, account: string, avatar: string) {
         const payload: JWTPayload = { sub: userId, account: account, avatar: avatar };
         const token = this.jwtService.sign(payload);
-        const cookie = createCookie('resetPassword', token, `/user/password/forgot-password/reset`, jwtConstants.expirationTimeDefault);
+        const cookie = createCookie('resetPassword', token, `/user/identify/forgot-password/reset`, jwtConstants.expirationTimeDefault);
         return cookie;
     }
 
@@ -269,17 +266,17 @@ export class UserService {
                     account: true,
                     email: true,
                     id: true,
-                    avatar: true
+                    avatar: true,
+                    name: true
                 }
             })
             if (!account) {
-                throw new NotFoundException('User not found');
+                throw new NotFoundException('không tìm thấy tài khoản phù hợp với thông tin của bạn!');
             }
             const payload = {
                 sub: account.id,
                 email: account.email,
                 account: account.account,
-                avatar: account.avatar
             }
 
             const token = this.jwtService.sign(payload);
