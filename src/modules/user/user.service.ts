@@ -24,6 +24,7 @@ import { InjectQueue } from '@nestjs/bull';
 import { Queue } from 'bull';
 import { generateOtp } from 'src/common/utils';
 import { typeUser } from './user.dto';
+
 @Injectable()
 export class UserService {
     constructor(
@@ -33,6 +34,14 @@ export class UserService {
         @InjectQueue('mail-queue') private readonly mailQueue: Queue,
         private readonly redisCacheService: RedisCacheService,
     ) { }
+
+    async setNameUser(userId: string, name: string) {
+        const result = await this.usersRepository.update({ id: userId }, { name });
+        if (result.affected === 0) {
+            throw new NotFoundException('User not found');
+        }
+        return { success: true };
+    }
 
     async getAllDataUserById(userId: string) {
         return await this.usersRepository.findOne({
@@ -169,20 +178,17 @@ export class UserService {
 
     async resetPassword(userId: string, password: string) {
         const passwordHash = await hashData(password);
-        await this.usersRepository.update(
+        return await this.usersRepository.update(
             { id: userId },
             {
                 password: passwordHash
             });
-        return {
-            message: "đặt lại mật khẩu thành công!"
-        }
     }
 
     public createCookieResetPassword(userId: string, account: string, avatar: string) {
         const payload: JWTPayload = { sub: userId, account: account, avatar: avatar };
         const token = this.jwtService.sign(payload);
-        const cookie = createCookie('resetPassword', token, `/user/password/forgot-password/reset`, jwtConstants.expirationTimeDefault);
+        const cookie = createCookie('resetPassword', token, `/user/identify/forgot-password/reset`, jwtConstants.expirationTimeDefault);
         return cookie;
     }
 
@@ -259,16 +265,18 @@ export class UserService {
                 select: {
                     account: true,
                     email: true,
-                    id: true
+                    id: true,
+                    avatar: true,
+                    name: true
                 }
             })
             if (!account) {
-                throw new NotFoundException('User not found');
+                throw new NotFoundException('không tìm thấy tài khoản phù hợp với thông tin của bạn!');
             }
             const payload = {
                 sub: account.id,
                 email: account.email,
-                account: account.account
+                account: account.account,
             }
 
             const token = this.jwtService.sign(payload);
@@ -424,7 +432,7 @@ export class UserService {
                     avatar: true
                 }
             });
-            
+
             return plainToInstance(BasicUserDataDto, account, {
                 excludeExtraneousValues: true,
             })

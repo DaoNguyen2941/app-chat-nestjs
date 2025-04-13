@@ -18,6 +18,7 @@ import {
     UserDataInReq,
     ConfirmOtpDto,
     resetPasswordDto,
+    NameUserDto,
 } from "./user.dto";
 import { plainToInstance } from "class-transformer";
 import { SkipAuth } from "src/common/decorate/skipAuth";
@@ -30,6 +31,13 @@ export class UserController {
         private readonly userService: UserService,
     ) { }
 
+    @Post(`/name`)
+    updateNameUser(@Request() request: CustomUserInRequest, @Body() data:NameUserDto) {
+        const { user } = request
+        const { name } = data
+        return this.userService.setNameUser(user.id, name)
+    }
+
     @Get(`/search/:keyword`)
     async searchUser(@Param() param:IParamsKeyWord, @Request() request: CustomUserInRequest) {
         const { user } = request
@@ -39,20 +47,20 @@ export class UserController {
 
     @SkipAuth()
     @UseGuards(JwtResetPasswordGuard)
-    @Post('/password/forgot-password/reset')
+    @Post('/identify/forgot-password/reset')
     async resetPassword(@Body() data: resetPasswordDto, @Request() request: CustomUserInRequest) {
         const { password } = data;
-        const { user } = request
+        const { user } = request        
         const dataUpdate = await this.userService.resetPassword(user.id, password)
         request.res.clearCookie('resetPassword', {
-            path: '/user/password/forgot-password/reset'
+            path: '/user/identify/forgot-password/reset'
         });
         return dataUpdate
     }
 
     @SkipAuth()
     @UseGuards(ParamTokenGuard)
-    @Post('/password/forgot-password/otp/validate/:token')
+    @Post('/identify/forgot-password/otp/validate/:token')
     async otpValidate(@Body() data: ConfirmOtpDto, @Request() request: CustomUserInRequest) {
         const { OTP } = data
         const { user } = request
@@ -76,7 +84,7 @@ export class UserController {
 
     @SkipAuth()
     @UseGuards(ParamTokenGuard)
-    @Get('/password/forgot-password/otp/:token')
+    @Get('/identify/forgot-password/otp/:token')
     async getOTPForgotPassword(@Request() request: UserDataInReq) {
         const email = request.user.email
         this.userService.sendEmailOTPChangePassword(email);
@@ -86,7 +94,7 @@ export class UserController {
     }
 
     @SkipAuth()
-    @Post('/search-and-retrieve')
+    @Post('/identify')
     async searchAccount(@Body() data: searchAccountOrEmailDto) {
         return await this.userService.findUserByIdentifier(data.keyword)
     }

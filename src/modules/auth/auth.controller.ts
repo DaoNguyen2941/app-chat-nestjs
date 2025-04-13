@@ -28,7 +28,7 @@ export class AuthController {
     private readonly userService: UserService
   ) { }
 
-  @HttpCode(200)
+
   @Post('/logout')
   async logour(@Request() request: CustomUserInRequest) {
     await this.userService.removeRefreshToken(request.user.id)
@@ -47,10 +47,10 @@ export class AuthController {
   @Post('/login')
   async login(@Request() request: CustomUserInRequest): Promise<any> {
     const { user } = request;
-    const {accessTokenCookie, token} = this.authService.createAuthCookie(user.id, user.account, user.avatar);
+    const { accessTokenCookie, token } = this.authService.createAuthCookie(user.id, user.account, user.avatar);
     const { RefreshTokenCookie, refreshToken } = this.authService.createRefreshCookie(user.id, user.account, user.avatar)
     await this.userService.setRefreshToken(refreshToken, user.id);
-    request.res.setHeader('Set-Cookie', [accessTokenCookie, RefreshTokenCookie]);    
+    request.res.setHeader('Set-Cookie', [accessTokenCookie, RefreshTokenCookie]);
     return {
       user: user,
       token: token
@@ -61,8 +61,8 @@ export class AuthController {
   @UseGuards(JwtRefreshGuard)
   @Get('/refresh')
   refresh(@Request() request: CustomUserInRequest) {
-    const { user } = request;    
-    const {accessTokenCookie, token} = this.authService.createAuthCookie(user.id, user.account, user.avatar  );
+    const { user } = request;
+    const { accessTokenCookie, token } = this.authService.createAuthCookie(user.id, user.account, user.avatar);
     request.res.setHeader('Set-Cookie', accessTokenCookie);
     return ({
       token: token,
@@ -80,7 +80,7 @@ export class AuthController {
 
   @SkipAuth()
   @Post('/register/verify-otp')
-  async confirmOtp2(@Body() confirmOtpData: ConfirmOtpDto) {    
+  async confirmOtp2(@Body() confirmOtpData: ConfirmOtpDto) {
     return await this.authService.verifyOTP2(confirmOtpData)
   }
 

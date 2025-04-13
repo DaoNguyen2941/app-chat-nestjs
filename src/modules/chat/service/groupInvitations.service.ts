@@ -22,7 +22,7 @@ export class GroupInvitationsService {
 
     async createMultipleInvites(userId: string, inviteeIds: string[], chatGroupId: string) {
         const invitedBy = await this.userService.getById(userId)
-        const chatGroup = await this.chatGroupService.getChatGroupById(chatGroupId)
+        const chatGroup = await this.chatGroupService.getChatGroupById(chatGroupId, userId)
         const invitees = await this.userService.getByIds(inviteeIds)
         // Kiểm tra nếu có người được mời không tồn tại
         const foundInviteeIds = invitees.map(user => user.id);
@@ -47,7 +47,7 @@ export class GroupInvitationsService {
     async createInviteUserToGroup(userId: string, inviteeId: string, chatGroupId: string) {
         const invitedBy = await this.userService.getById(userId)
         const invitee = await this.userService.getById(inviteeId)
-        const chatGroup = await this.chatGroupService.getChatGroupById(chatGroupId)
+        const chatGroup = await this.chatGroupService.getChatGroupById(chatGroupId, userId)
         const invitation = this.invitationsRepository.create({
             invitedBy: { id: invitedBy.id },
             invitee: { id: invitee.id },

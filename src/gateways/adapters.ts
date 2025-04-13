@@ -95,7 +95,6 @@ export class WebSocketAdapter extends IoAdapter {
       }
       client.join(payload.sub)
     } catch (error) {
-      console.log(error);
       client.disconnect();
     }
   }
