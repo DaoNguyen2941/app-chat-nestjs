@@ -36,7 +36,32 @@ export class JWTPayload {
   @IsNotEmpty()
   @IsString()
   avatar: string;
+
+  @Expose()
+  @IsNotEmpty()
+  @IsString()
+  name: string;
 }
+
+export class JWTSubPayload {
+  @Expose()
+  @IsNotEmpty()
+  @IsString()
+  sub: string;
+}
+
+export class JWTDecodedResetPassword extends JWTSubPayload {
+  @Expose()
+  @IsNotEmpty()
+  @IsNumber()
+  iat: number;
+
+  @Expose()
+  @IsNotEmpty()
+  @IsNumber()
+  exp: number;
+}
+
 
 export class JWTDecoded extends JWTPayload {
   @Expose()

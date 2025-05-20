@@ -8,6 +8,10 @@ import {
     HttpException,
     HttpStatus,
     Param,
+    Patch,
+    UseInterceptors,
+    UploadedFile,
+    ParseFilePipeBuilder,
 } from "@nestjs/common";
 import { UserService } from './user.service';
 import { CustomUserInRequest } from "src/modules/auth/auth.dto";
@@ -25,21 +29,43 @@ import { SkipAuth } from "src/common/decorate/skipAuth";
 import { ParamTokenGuard } from "./guard/analysisParam.guard";
 import JwtResetPasswordGuard from "./guard/jwt-resetPassword.guard";
 import { IParamsKeyWord } from "src/common/Interface";
+import { FileInterceptor } from "@nestjs/platform-express";
+// npm install --save-dev @types/express @types/multer
+import { Express } from 'express';
+
 @Controller('user')
 export class UserController {
     constructor(
         private readonly userService: UserService,
     ) { }
 
-    @Post(`/name`)
-    updateNameUser(@Request() request: CustomUserInRequest, @Body() data:NameUserDto) {
+    @Post(`/avatar`)
+    @UseInterceptors(FileInterceptor('file'))
+    updateAvatarUser(@Request() request: CustomUserInRequest, @UploadedFile(
+        new ParseFilePipeBuilder()
+            .addFileTypeValidator({
+                fileType: 'image'
+            })
+            // .addMaxSizeValidator({
+            //   maxSize: 1000
+            // })
+            .build({
+                errorHttpStatusCode: HttpStatus.UNPROCESSABLE_ENTITY
+            }),
+    ) file: Express.Multer.File,) {
+        console.log(file);
+        return file
+    }
+
+    @Patch(`/name`)
+    updateNameUser(@Request() request: CustomUserInRequest, @Body() data: NameUserDto) {
         const { user } = request
         const { name } = data
         return this.userService.setNameUser(user.id, name)
     }
 
     @Get(`/search/:keyword`)
-    async searchUser(@Param() param:IParamsKeyWord, @Request() request: CustomUserInRequest) {
+    async searchUser(@Param() param: IParamsKeyWord, @Request() request: CustomUserInRequest) {
         const { user } = request
         const userList = await this.userService.SearchUsersAndFriendStatus(param.keyword, user.id);
         return userList
@@ -50,7 +76,7 @@ export class UserController {
     @Post('/identify/forgot-password/reset')
     async resetPassword(@Body() data: resetPasswordDto, @Request() request: CustomUserInRequest) {
         const { password } = data;
-        const { user } = request        
+        const { user } = request
         const dataUpdate = await this.userService.resetPassword(user.id, password)
         request.res.clearCookie('resetPassword', {
             path: '/user/identify/forgot-password/reset'
@@ -74,7 +100,7 @@ export class UserController {
                 HttpStatus.NOT_ACCEPTABLE
             )
         }
-        const cookie = this.userService.createCookieResetPassword(user.id, user.account, user.avatar);
+        const cookie = this.userService.createCookieResetPassword(user.id);
         request.res.setHeader('Set-Cookie', cookie)
         return {
             messsage: "Xác thực OTP thành công. Có thể đặt lại mật khẩu ngay bây giờ!"
@@ -102,8 +128,8 @@ export class UserController {
     @Post('/password/change')
     async updatePassword(@Body() data: dataUpdatePasswordDto, @Request() req: UserDataInReq) {
         const { user } = req;
-        const { password, passwordNew } = data
-        await this.userService.handleUpdatepasswordUser(user.id, password, passwordNew);
+        const { password, newPassword } = data
+        await this.userService.changeUserPassword(user.id, password, newPassword);
         return {
             message: "thay đổi mật khẩu thành công!"
         }

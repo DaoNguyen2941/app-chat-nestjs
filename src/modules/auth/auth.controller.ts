@@ -47,8 +47,8 @@ export class AuthController {
   @Post('/login')
   async login(@Request() request: CustomUserInRequest): Promise<any> {
     const { user } = request;
-    const { accessTokenCookie, token } = this.authService.createAuthCookie(user.id, user.account, user.avatar);
-    const { RefreshTokenCookie, refreshToken } = this.authService.createRefreshCookie(user.id, user.account, user.avatar)
+    const { accessTokenCookie, token } = this.authService.createAuthCookie(user);
+    const { RefreshTokenCookie, refreshToken } = this.authService.createRefreshCookie(user)
     await this.userService.setRefreshToken(refreshToken, user.id);
     request.res.setHeader('Set-Cookie', [accessTokenCookie, RefreshTokenCookie]);
     return {
@@ -62,7 +62,7 @@ export class AuthController {
   @Get('/refresh')
   refresh(@Request() request: CustomUserInRequest) {
     const { user } = request;
-    const { accessTokenCookie, token } = this.authService.createAuthCookie(user.id, user.account, user.avatar);
+    const { accessTokenCookie, token } = this.authService.createAuthCookie(user);
     request.res.setHeader('Set-Cookie', accessTokenCookie);
     return ({
       token: token,

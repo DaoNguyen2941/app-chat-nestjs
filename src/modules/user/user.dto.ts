@@ -53,11 +53,10 @@ export class BasicUserDataDto
   }
 
   export class dataUpdatePasswordDto extends PickType(BasicUserDataDto, ['password'] as const) {
-    @Expose()
     @IsString()
     @IsNotEmpty()
     @IsNotEqualTo('password', { message: 'Mật khẩu mới không được giống mật khẩu cũ' })
-    passwordNew: string;
+    newPassword: string;
   }
 
   export class UserDataInReq extends Request {

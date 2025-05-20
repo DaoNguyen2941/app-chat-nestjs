@@ -27,6 +27,7 @@ export const UseConfigModule = ConfigModule.forRoot({
       //jwt
       SECRET_JWT: Joi.string().required(),
       JWT_REFRESH_TOKEN_SECRET: Joi.string().required(),
+      JWT_RESET_PASSWORD:Joi.string().required(),
       JWT_REFRESH_TOKEN_EXPIRATION_TIME: Joi.number().required(),
       JWT_EXPIRATION_TIME_DEAULT: Joi.number().required().default(900),
       //redis

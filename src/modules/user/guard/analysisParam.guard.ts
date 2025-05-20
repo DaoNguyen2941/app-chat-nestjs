@@ -16,7 +16,7 @@ export class ParamTokenGuard implements CanActivate {
         }
 
         try {
-            const payload = this.jwtService.verify(token, { secret: jwtConstants.secret });
+            const payload = this.jwtService.verify(token, { secret: jwtConstants.resetPasswordSecret });
             request.user = { id: payload.sub, email: payload.email,  account: payload.account,};; 
             return true;
         } catch (error) {

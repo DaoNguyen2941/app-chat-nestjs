@@ -19,7 +19,7 @@ export class JwtStrategy extends PassportStrategy(Strategy,'jwt') {
   }
 
   async validate(payload: JWTDecoded) {    
-    const user = { id: payload.sub, account: payload.account, avatar: payload.avatar};
+    const user = { id: payload.sub, account: payload.account, avatar: payload.avatar, name: payload.name};
     return user;
   }
 }
