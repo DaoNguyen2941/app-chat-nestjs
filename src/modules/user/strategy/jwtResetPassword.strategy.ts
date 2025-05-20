@@ -3,7 +3,7 @@ import { ExtractJwt, Strategy } from 'passport-jwt';
 import { PassportStrategy } from '@nestjs/passport';
 import { Injectable } from '@nestjs/common';
 import { Request } from 'express';
-import { JWTDecoded } from 'src/modules/auth/auth.dto';
+import { JWTDecodedResetPassword } from 'src/modules/auth/auth.dto';
 import { jwtConstants } from 'src/modules/auth/constants';
 
 @Injectable()
@@ -17,12 +17,12 @@ export class JwtResetPasswordStrategy extends PassportStrategy(
                 return request?.cookies?.resetPassword;
             }]),
             ignoreExpiration: false,
-            secretOrKey: jwtConstants.secret,
+            secretOrKey: jwtConstants.resetPasswordSecret,
         });
     }
 
-    async validate(payload: JWTDecoded) {
-        const user = { id: payload.sub, account: payload.account };
+    async validate(payload: JWTDecodedResetPassword) {
+        const user = { id: payload.sub};
         return user;
     }
 }

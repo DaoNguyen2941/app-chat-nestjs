@@ -3,6 +3,8 @@ export const JOB_CHAT = {
     NEW_MESSAGE: 'chat-new-message',
     DELETE_MESSAGE: 'chat-delete-message',
     NEW_MESSAGE_GROUP: 'chat-group-new-message',
+    INVITE_TO_GROUP: 'chat-group-invite',
+    NEW_GROUP_CHAT: 'new-group-chat'
 };
 
 export const JOB_FRIEND = {

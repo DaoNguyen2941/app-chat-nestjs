@@ -23,8 +23,13 @@ export class AuthService {
     ) { }
 
 
-    public createAuthCookie(userId: string, account: string, avatar: string) {
-        const payload: JWTPayload = { sub: userId, account: account, avatar: avatar };
+    public createAuthCookie(userData: userDataDto) {
+        const payload: JWTPayload = {
+            sub: userData.id,
+            account: userData.account,
+            avatar: userData.avatar,
+            name: userData.name
+        };
         const token = this.jwtService.sign(payload);
         const cookie = createCookie('Authentication', token, '/', jwtConstants.expirationTimeDefault)
         return {
@@ -33,8 +38,13 @@ export class AuthService {
         }
     }
 
-    public createRefreshCookie(userId: string, account: string, avatar: string) {
-        const payload: JWTPayload = { sub: userId, account: account, avatar: avatar };
+    public createRefreshCookie(userData: userDataDto) {
+        const payload: JWTPayload = {
+            sub: userData.id,
+            account: userData.account,
+            avatar: userData.avatar,
+            name: userData.name
+        };
         const refreshToken = this.jwtService.sign(payload, {
             expiresIn: `${jwtConstants.expirationTime}s`,
             secret: jwtConstants.refreshTokenSecret,
@@ -78,7 +88,7 @@ export class AuthService {
     async verifyOTP2(dataOTP: ConfirmOtpDto): Promise<RegisterResponseDto> {
         try {
             const userNew: RegisterDto | null = await this.redisCacheService.getCache(`newAccount ${dataOTP.email}`)
-            const userOtp: {otp:string} | null = await this.redisCacheService.getCache(`otp ${dataOTP.email}`)            
+            const userOtp: { otp: string } | null = await this.redisCacheService.getCache(`otp ${dataOTP.email}`)
             if (userNew === null) {
                 throw new HttpException({
                     status: HttpStatus.UNPROCESSABLE_ENTITY,

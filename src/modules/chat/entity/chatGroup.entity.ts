@@ -12,7 +12,7 @@ import {
   import { Users } from 'src/modules/user/entity/user.entity';
   import { UserConversation } from './userConversations.entity';
   import { Message } from './message.entity';
-  
+  import { GroupInvitations } from './groupInvitations.entity';
   @Entity()
   export class ChatGroups extends BaseEntity {
 
@@ -40,5 +40,9 @@ import {
       cascade: true,
     })
     userConversations: UserConversation[];
+
+    @OneToMany(() => GroupInvitations, (invitation) => invitation.chatGroup)
+    invitations: GroupInvitations[];
+
   }
   

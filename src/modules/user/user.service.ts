@@ -15,7 +15,7 @@ import { RegisterDto } from 'src/modules/auth/auth.dto';
 import * as bcrypt from 'bcrypt';
 import { hashData } from 'src/common/utils';
 import { JwtService } from '@nestjs/jwt';
-import { JWTPayload } from 'src/modules/auth/auth.dto';
+import { JWTPayload, JWTSubPayload } from 'src/modules/auth/auth.dto';
 import { createCookie, } from 'src/common/utils';
 import { jwtConstants } from 'src/modules/auth/constants';
 import { SearchUserWithFriendStatusDto } from './user.dto';
@@ -23,6 +23,7 @@ import { RedisCacheService } from 'src/redis/services/redisCache.service';
 import { InjectQueue } from '@nestjs/bull';
 import { Queue } from 'bull';
 import { generateOtp } from 'src/common/utils';
+import { typeUser } from './user.dto';
 
 @Injectable()
 export class UserService {
@@ -34,7 +35,25 @@ export class UserService {
         private readonly redisCacheService: RedisCacheService,
     ) { }
 
-    async getByIds(userIds: string[]) {
+    async updateUser(userId:string, data: any) {
+
+    }
+
+    async setNameUser(userId: string, name: string) {
+        const result = await this.usersRepository.update({ id: userId }, { name });
+        if (result.affected === 0) {
+            throw new NotFoundException('User not found');
+        }
+        return { success: true, newName: name };
+    }
+
+    async getAllDataUserById(userId: string) {
+        return await this.usersRepository.findOne({
+            where: { id: userId },
+        });
+    }
+
+    async getByIds(userIds: string[]): Promise<typeUser[]> {
         try {
             const users = await this.usersRepository.find({
                 where: { id: In(userIds) },
@@ -143,7 +162,7 @@ export class UserService {
                 "(f.senderId = :userId AND f.receiverId = user.id) OR (f.senderId = user.id AND f.receiverId = :userId)",
                 { userId }
             )
-            .where("user.account LIKE :keyword", { keyword: `%${keyword}%` })
+            .where("user.name LIKE :keyword", { keyword: `%${keyword}%` })
             .select([
                 "user.id AS id", // 👈 Đảm bảo key đúng
                 "user.account AS account",
@@ -163,20 +182,20 @@ export class UserService {
 
     async resetPassword(userId: string, password: string) {
         const passwordHash = await hashData(password);
-        await this.usersRepository.update(
+        return await this.usersRepository.update(
             { id: userId },
             {
                 password: passwordHash
             });
-        return {
-            message: "đặt lại mật khẩu thành công!"
-        }
     }
 
-    public createCookieResetPassword(userId: string, account: string, avatar: string) {
-        const payload: JWTPayload = { sub: userId, account: account, avatar: avatar };
-        const token = this.jwtService.sign(payload);
-        const cookie = createCookie('resetPassword', token, `/user/password/forgot-password/reset`, jwtConstants.expirationTimeDefault);
+    public createCookieResetPassword(userId: string) {
+        const payload: JWTSubPayload = { sub: userId };
+        const token = this.jwtService.sign(payload, {
+            secret: jwtConstants.resetPasswordSecret,
+            expiresIn: `${jwtConstants.expirationTimeDefault}s`,
+        });
+        const cookie = createCookie('resetPassword', token, `/user/identify/forgot-password/reset`, jwtConstants.expirationTimeDefault);
         return cookie;
     }
 
@@ -215,17 +234,17 @@ export class UserService {
         }
     }
 
-    public async handleUpdatepasswordUser(userId: string, password: string, passwordNew: string) {
+    public async changeUserPassword(userId: string, oldPassword: string, newPassword: string) {
         try {
-            const userData = await this.getById(userId)
+            const user  = await this.getById(userId)
             const isPasswordMatching = await bcrypt.compare(
-                password,
-                userData?.password || 'null'
+                oldPassword,
+                user ?.password
             );
             if (!isPasswordMatching) {
                 throw new BadRequestException('Mật khẩu cũ không đúng');
             }
-            const passwordHash = await hashData(passwordNew);
+            const passwordHash = await hashData(newPassword);
             return await this.usersRepository.update(
                 { id: userId },
                 {
@@ -253,19 +272,24 @@ export class UserService {
                 select: {
                     account: true,
                     email: true,
-                    id: true
+                    id: true,
+                    avatar: true,
+                    name: true
                 }
             })
             if (!account) {
-                throw new NotFoundException('User not found');
+                throw new NotFoundException('không tìm thấy tài khoản phù hợp với thông tin của bạn!');
             }
             const payload = {
                 sub: account.id,
                 email: account.email,
-                account: account.account
+                account: account.account,
             }
 
-            const token = this.jwtService.sign(payload);
+            const token = this.jwtService.sign(payload, {
+                secret: jwtConstants.resetPasswordSecret
+            });
+            
             return {
                 user: account,
                 token: token,
@@ -335,8 +359,16 @@ export class UserService {
 
     async create(dataUserNew: RegisterDto) {
         try {
-            const newUser = await this.usersRepository.create(dataUserNew)
-            const a = await this.usersRepository.save(newUser)
+            const randomStr = Math.random().toString(36).substring(2, 8);
+            const nameAccount = `user-${randomStr}`
+            const accountData = {
+                email: dataUserNew.email,
+                password: dataUserNew.password,
+                account: dataUserNew.account,
+                name: nameAccount
+            }
+            const newUser = await this.usersRepository.create(accountData)
+            await this.usersRepository.save(newUser)
             return newUser
         } catch (error) {
             // Kiểm tra nếu lỗi là do truy vấn cơ sở dữ liệu
@@ -372,7 +404,8 @@ export class UserService {
                     email: true,
                     password: true,
                     refresh_token: true,
-                    avatar: true
+                    avatar: true,
+                    name: true
                 }
             });
 
@@ -418,6 +451,7 @@ export class UserService {
                     avatar: true
                 }
             });
+
             return plainToInstance(BasicUserDataDto, account, {
                 excludeExtraneousValues: true,
             })

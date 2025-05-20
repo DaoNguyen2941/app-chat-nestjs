@@ -3,7 +3,8 @@ import {
     HttpException,
     HttpStatus,
     NotFoundException,
-    InternalServerErrorException
+    InternalServerErrorException,
+    BadRequestException
 } from '@nestjs/common';
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository, QueryFailedError } from 'typeorm';
@@ -14,15 +15,14 @@ import { plainToInstance } from 'class-transformer';
 import { Chats } from '../dto/chat.dto';
 import { userDataDto } from 'src/modules/user/user.dto';
 import { ChatDataDto, listChatDto, ResCreateChatDto } from '../dto/chat.dto';
-import { MessageDataDto } from '../dto/message.dto';
-
+import { UserConversationService } from './userConversation.service';
 @Injectable()
 export class ChatService {
     constructor(
         @InjectRepository(Chat)
         private readonly chatRepository: Repository<Chat>,
         private readonly usersService: UserService,
-
+        private readonly userConversationService: UserConversationService
     ) { }
 
     async getListChat(userId: string): Promise<Chats[]> {
@@ -77,37 +77,46 @@ export class ChatService {
             throw new InternalServerErrorException("Đã có lỗi xảy ra khi lấy dữ liệu cuộc trò chuyện");
         }
     }
-
     async getChatDataById(chatId: string, userId: string): Promise<ChatDataDto> {
         try {
-            const chatData = await this.chatRepository
-                .createQueryBuilder('c')
-                .leftJoinAndSelect('c.receiver', 'r')
-                .leftJoinAndSelect('c.sender', 's')
-                .leftJoinAndSelect('c.message', 'm')
-                .leftJoinAndSelect('m.author', 'a')
-                .select([
-                    'c.id', 'r.id', 'r.account', 'r.avatar','r.name',
-                    's.id','s.account', 's.avatar','s.name',
-                    'm.id', 'm.content', 'm.created_At',
-                    'a.id', 'a.account', 'a.avatar', 'a.name',
-                ])
-                .where('c.id = :chatId', { chatId })
-                .orderBy('m.created_At', 'ASC')
-                .limit(20)
-                .getOne();
-
-            if (!chatData) {
-                throw new NotFoundException()
-            }            
-            const isGroup = false
-            return plainToInstance(ChatDataDto, { ...chatData, userId, isGroup}, {
-                excludeExtraneousValues: true,
-            })
+          const startTime = await this.userConversationService.getStartTime(chatId, userId, false);
+      
+          const qb = this.chatRepository
+            .createQueryBuilder('c')
+            .leftJoinAndSelect('c.receiver', 'r')
+            .leftJoinAndSelect('c.sender', 's')
+            .leftJoinAndSelect('c.message', 'm', startTime ? 'm.created_At >= :startTime' : undefined, startTime ? { startTime } : {})
+            .leftJoinAndSelect('m.author', 'a')
+            .where('c.id = :chatId', { chatId })
+            .orderBy('m.created_At', 'ASC')
+            // .take(20); 
+      
+          const chatData = await qb.getOne();
+      
+          if (!chatData) {
+            throw new NotFoundException('Không tìm thấy cuộc trò chuyện');
+          }
+      
+          // Nếu không có tin nhắn, đảm bảo trả về mảng rỗng
+          chatData.message = chatData.message || [];
+      
+          return plainToInstance(
+            ChatDataDto,
+            {
+              ...chatData,
+              userId,
+              isGroup: false,
+            },
+            {
+              excludeExtraneousValues: true,
+            },
+          );
         } catch (error) {
-            throw new InternalServerErrorException('Lỗi máy chủ, vui lòng thử lại sau.');
+          console.error('Lỗi khi lấy dữ liệu cuộc trò chuyện:', error);
+          throw new InternalServerErrorException('Lỗi máy chủ, vui lòng thử lại sau.');
         }
-    }
+      }
+      
 
     private async checkExists(senderId: string, receiverId: string,) {
         const chat = await this.chatRepository.findOne({
@@ -127,16 +136,19 @@ export class ChatService {
             },
             select: {
                 id: true,
-                sender: { id: true},
-                receiver: { id: true},
+                sender: { id: true },
+                receiver: { id: true },
             }
         })
         return chat
     }
 
     async createChat(senderId: string, receiverId: string) {
-        try {            
-             await this.usersService.getById(receiverId);        
+        try {
+            if(senderId === receiverId) {
+                throw new BadRequestException('Không thể tự tạo hội thoại với trính mình');
+            }
+            await this.usersService.getById(receiverId);
             const checkChatExists = await this.checkExists(senderId, receiverId)
             if (checkChatExists) {
                 return checkChatExists
