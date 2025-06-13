@@ -30,10 +30,16 @@ export class ChatGroupData {
     message: MessageDataDto[];
 }
 
-export class ChatGroupResponseDto  extends PickType(ChatGroupData,['id','name', 'manager', 'members']) {}
+export class ChatGroupInfoDto extends PickType(ChatGroupData, ['id', 'name', 'members', 'manager']) {}
 
 export class CreateChatGroupDto  extends PickType(ChatGroupData,['name']){
     @IsArray()
     @ArrayNotEmpty()
     members: string[];
+}
+
+export class MenberIdChatGroupDto {
+    @IsArray()
+    @ArrayNotEmpty()
+    memberIds: string[];
 }

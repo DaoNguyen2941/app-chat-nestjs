@@ -10,10 +10,11 @@ import { PassportModule } from '@nestjs/passport';
 import { JwtAuthGuard } from './modules/auth/guard/jwt-auth.guard';
 import { ChatModule } from './modules/chat/chat.module';
 import { FriendModule } from './modules/friend/friend.module';
-// import { EventEmitterModule } from '@nestjs/event-emitter';
 import { ManagerClientSocketService } from 'src/redis/services/managerClient.service'; // Import các services cần thiết
 import { JwtService } from '@nestjs/jwt';
 import { GatewaysModule } from './gateways/gateway.module';
+import { StorageModule } from './object-storage/storage.module';
+
 @Module({
   imports: [
     UseTypeOrmModule,
@@ -34,6 +35,7 @@ import { GatewaysModule } from './gateways/gateway.module';
     FriendModule,
     GatewaysModule,
     // EventEmitterModule.forRoot()
+    StorageModule,
   ],
   providers: [
     JwtService,

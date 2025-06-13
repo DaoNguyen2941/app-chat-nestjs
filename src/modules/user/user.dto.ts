@@ -43,7 +43,7 @@ export class BasicUserDataDto
 
   export class NameUserDto extends PickType(BasicUserDataDto, ['name']){}
   export class userDataDto extends OmitType(BasicUserDataDto, ['password', 'refresh_token',] as const) { };
-  export class typeUser extends PickType(BasicUserDataDto, ['id', 'account', 'avatar', 'name',] as const) {}
+  export class typeUser extends PickType(BasicUserDataDto, ['id', 'avatar', 'name',] as const) {}
 
   export class searchAccountOrEmailDto {
     @Expose()

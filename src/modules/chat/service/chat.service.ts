@@ -77,46 +77,55 @@ export class ChatService {
             throw new InternalServerErrorException("Đã có lỗi xảy ra khi lấy dữ liệu cuộc trò chuyện");
         }
     }
+
+    // cần sửa lại truy vấn dữ liệu thừa dữ liệu nhạy cảm
     async getChatDataById(chatId: string, userId: string): Promise<ChatDataDto> {
         try {
-          const startTime = await this.userConversationService.getStartTime(chatId, userId, false);
-      
-          const qb = this.chatRepository
-            .createQueryBuilder('c')
-            .leftJoinAndSelect('c.receiver', 'r')
-            .leftJoinAndSelect('c.sender', 's')
-            .leftJoinAndSelect('c.message', 'm', startTime ? 'm.created_At >= :startTime' : undefined, startTime ? { startTime } : {})
-            .leftJoinAndSelect('m.author', 'a')
-            .where('c.id = :chatId', { chatId })
-            .orderBy('m.created_At', 'ASC')
+            const startTime = await this.userConversationService.getStartTime(chatId, userId, false);
+
+            const qb = this.chatRepository
+                .createQueryBuilder('c')
+                .leftJoinAndSelect('c.receiver', 'r')
+                .leftJoinAndSelect('c.sender', 's')
+                .leftJoinAndSelect('c.message', 'm', startTime ? 'm.created_At >= :startTime' : undefined, startTime ? { startTime } : {})
+                .leftJoinAndSelect('m.author', 'a')
+                .where('c.id = :chatId', { chatId })
+                .orderBy('m.created_At', 'ASC')
+                .select([
+                    'c.id',
+                    'r.id', 'r.name', 'r.avatar',
+                    's.id', 's.name', 's.avatar',
+                    'm.id', 'm.content', 'm.created_At',
+                    'a.id', 'a.name', 'a.avatar',
+                ]);
             // .take(20); 
-      
-          const chatData = await qb.getOne();
-      
-          if (!chatData) {
-            throw new NotFoundException('Không tìm thấy cuộc trò chuyện');
-          }
-      
-          // Nếu không có tin nhắn, đảm bảo trả về mảng rỗng
-          chatData.message = chatData.message || [];
-      
-          return plainToInstance(
-            ChatDataDto,
-            {
-              ...chatData,
-              userId,
-              isGroup: false,
-            },
-            {
-              excludeExtraneousValues: true,
-            },
-          );
+
+            const chatData = await qb.getOne();
+
+            if (!chatData) {
+                throw new NotFoundException('Không tìm thấy cuộc trò chuyện');
+            }
+
+            // Nếu không có tin nhắn, đảm bảo trả về mảng rỗng
+            chatData.message = chatData.message || [];
+
+            return plainToInstance(
+                ChatDataDto,
+                {
+                    ...chatData,
+                    userId,
+                    isGroup: false,
+                },
+                {
+                    excludeExtraneousValues: true,
+                },
+            );
         } catch (error) {
-          console.error('Lỗi khi lấy dữ liệu cuộc trò chuyện:', error);
-          throw new InternalServerErrorException('Lỗi máy chủ, vui lòng thử lại sau.');
+            console.error('Lỗi khi lấy dữ liệu cuộc trò chuyện:', error);
+            throw new InternalServerErrorException('Lỗi máy chủ, vui lòng thử lại sau.');
         }
-      }
-      
+    }
+
 
     private async checkExists(senderId: string, receiverId: string,) {
         const chat = await this.chatRepository.findOne({
@@ -145,7 +154,7 @@ export class ChatService {
 
     async createChat(senderId: string, receiverId: string) {
         try {
-            if(senderId === receiverId) {
+            if (senderId === receiverId) {
                 throw new BadRequestException('Không thể tự tạo hội thoại với trính mình');
             }
             await this.usersService.getById(receiverId);

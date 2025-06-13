@@ -6,13 +6,15 @@ import { Users } from './entity/user.entity';
 import { Peer } from './entity/peer.entity';
 import { QueueModule } from '../queue/queue.module';
 import { JwtResetPasswordStrategy } from './strategy/jwtResetPassword.strategy';
+import { StorageModule } from 'src/object-storage/storage.module';
 @Module({
   imports: [
     TypeOrmModule.forFeature([
       Users,
        Peer,
       ]),
-    QueueModule
+    QueueModule,
+    StorageModule,
   ],
   controllers: [UserController],
   providers: [

@@ -27,7 +27,7 @@ export class Users extends BaseEntity {
   @JoinColumn()
   peer: Peer;
 
-  @Column({ type: "varchar", nullable: true, default: 'https://icons.veryicon.com/png/o/miscellaneous/rookie-official-icon-gallery/225-default-avatar.png'})
+  @Column({ type: "varchar", nullable: true, default: 'https://pub-5c96059ac5534e72b75bf2db6c189f0c.r2.dev/default-avatar.png'})
   avatar: string;
 
   @Column({ type: "varchar", nullable: true})

@@ -2,7 +2,8 @@ import {
     Injectable,
     HttpException,
     HttpStatus,
-    NotFoundException
+    NotFoundException,
+    InternalServerErrorException
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, QueryFailedError, In } from 'typeorm';
@@ -22,6 +23,51 @@ export class UserConversationService {
         private readonly managerClientSocketService: ManagerClientSocketService,
         @InjectQueue(JOB_CHAT.NAME) private readonly chatQueue: Queue,
     ) { }
+
+    async getGroupConversations(userId: string): Promise<listChatDto[]> {
+        try {
+            const conversations = await this.userConversationRepository
+                .createQueryBuilder("uc")
+                .leftJoinAndSelect("uc.chatGroup", "cg")
+                .leftJoinAndSelect("cg.members", "mem")
+                .leftJoinAndSelect(
+                    qb => qb
+                        .select("msg.chatId", "chatId")
+                        .addSelect("MAX(msg.created_At)", "latestMessageTime")
+                        .from("message", "msg")
+                        .groupBy("msg.chatId"),
+                    "lm",
+                    "lm.chatId = cg.id"
+                )
+                .where("uc.userId = :userId", { userId })
+                .andWhere("uc.IsGroup = true")
+                .orderBy("lm.latestMessageTime", "DESC")
+                .select([
+                    "uc.id",
+                    "uc.unreadCount",
+                    "uc.IsGroup",
+                    "cg.id",
+                    "cg.name",
+                    "mem.id",
+                    "mem.name",
+                    "mem.avatar",
+                ])
+                .getMany();
+
+            const dataConversation = conversations.map(c => {
+                return plainToInstance(listChatDto, { ...c, currentUserId: userId }, {
+                    excludeExtraneousValues: true
+                });
+            });
+
+            return dataConversation;
+        } catch (error) {
+            console.log(`Failed to get group conversations for user: ${error.message}`, error.stack);
+            throw new InternalServerErrorException("Không thể lấy danh sách nhóm chat");
+
+        }
+    }
+
 
     async getStartTime(
         chatId: string, userId: string, isGroup: boolean,): Promise<Date | null> {
@@ -120,11 +166,11 @@ export class UserConversationService {
         await this.userConversationRepository.update(
             { id: In(ConversationIds) },
             { unreadCount: () => "unreadCount + 1" }
-        );        
+        );
         const newChatUserIds = data.filter(item => item.newChat === true)
-        .map(item => item.data.user.id)
+            .map(item => item.data.user.id)
         const usersWithExistingChat = data.filter(item => item.newChat === false)
-        .map(item => item.data.user.id)
+            .map(item => item.data.user.id)
 
         return {
             newChatUserIds,
@@ -154,8 +200,8 @@ export class UserConversationService {
             ],
             relations: {
                 chat: true,
-                user:true,
-                chatGroup:true
+                user: true,
+                chatGroup: true
             },
             select: {
                 id: true,
@@ -172,7 +218,7 @@ export class UserConversationService {
         try {
             const conversations = await Promise.all(
                 membersChat.map(async (memberId) => {
-                    const existingConversation = await this.getOneByChatIdAndUserId(chatId, memberId);                    
+                    const existingConversation = await this.getOneByChatIdAndUserId(chatId, memberId);
                     if (existingConversation) {
                         return { data: existingConversation, newChat: false };
                     }
@@ -233,8 +279,9 @@ export class UserConversationService {
     }
 
 
-    async getListConversations(userId: string): Promise<listChatDto[]> {
-        const conversations = await this.userConversationRepository
+  async getListConversations(userId: string): Promise<listChatDto[]> {
+    try {
+         const conversations = await this.userConversationRepository
             .createQueryBuilder("uc")
             .leftJoinAndSelect("uc.chat", "c")
             .leftJoinAndSelect("uc.chatGroup", "cg")
@@ -272,26 +319,42 @@ export class UserConversationService {
                 "mem.avatar",
             ])
             .getMany();
+
         const dataConversation = await Promise.all(
             conversations.map(async (c) => {
-                const data = plainToInstance(listChatDto, { ...c, currentUserId: userId }, {
-                    excludeExtraneousValues: true
-                });
+                const data = plainToInstance(
+                    listChatDto,
+                    { ...c, currentUserId: userId },
+                    { excludeExtraneousValues: true }
+                );
+
                 if (c.chat && data.user && !data.IsGroup) {
                     const [lastSeenFromSocket, userStatus] = await Promise.all([
                         this.managerClientSocketService.getLastSeenClientSocket(data.user.id),
                         this.managerClientSocketService.UserStatus(data.user.id),
                     ]);
-                    data.status = userStatus
-                    data.lastSeen = lastSeenFromSocket || (
-                        data.user.id === c.chat.sender.id ? c.chat.sender.lastSeen :
-                            data.user.id === c.chat.receiver.id ? c.chat.receiver.lastSeen : null
-                    );
+
+                    data.status = userStatus;
+                    data.lastSeen =
+                        lastSeenFromSocket ||
+                        (data.user.id === c.chat.sender.id
+                            ? c.chat.sender.lastSeen
+                            : data.user.id === c.chat.receiver.id
+                            ? c.chat.receiver.lastSeen
+                            : null);
                 }
-                return data
+
+                return data;
             })
         );
+
         return dataConversation;
+    } catch (error) {
+        // Ghi log hoặc throw lỗi tuỳ vào logic của bạn
+        console.error(`Lỗi khi lấy danh sách cuộc trò chuyện:`, error);
+        throw new InternalServerErrorException('Không thể lấy danh sách cuộc trò chuyện');
     }
+}
+
 
 }

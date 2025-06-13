@@ -5,10 +5,9 @@ import {
     ForbiddenException,
     Injectable,
 } from '@nestjs/common';
-import { Reflector } from '@nestjs/core';
 import { ChatGroupService } from 'src/modules/chat/service/chatGroup.service';
 import { Request } from 'express';
-
+import { userDataDto } from 'src/modules/user/user.dto';
 @Injectable()
 export class IsGroupManagerGuard implements CanActivate {
     constructor(
@@ -16,14 +15,9 @@ export class IsGroupManagerGuard implements CanActivate {
     ) { }
 
     async canActivate(context: ExecutionContext): Promise<boolean> {
-        const req = context.switchToHttp().getRequest<Request & { user: any }>();
+        const req = context.switchToHttp().getRequest<Request & { user: userDataDto }>();
         const user = req.user;
         const groupId = req.params.id;
-        const userIdKich = req.params.userId
-
-        if (userIdKich === user.id) {
-            throw new ForbiddenException();
-        }
 
         if (!user || !groupId) {
             throw new ForbiddenException('Thiếu thông tin xác thực hoặc groupId');

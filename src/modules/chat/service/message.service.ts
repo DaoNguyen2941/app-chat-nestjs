@@ -3,6 +3,7 @@ import {
     Post,
     HttpException,
     HttpStatus,
+    NotFoundException
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, QueryFailedError } from 'typeorm';
@@ -17,6 +18,7 @@ import { ChatGroupService } from './chatGroup.service';
 import { ChatGroupDto, ResCreateChatDto } from '../dto/chat.dto';
 import { IGroupConversationResult } from '../interface';
 import { IOutgoingMessageData, IOutgoingMessageGroupData } from '../interface';
+import { UserConversationService } from './userConversation.service';
 @Injectable()
 export class MessageService {
     constructor(
@@ -25,9 +27,18 @@ export class MessageService {
         @InjectQueue(JOB_CHAT.NAME) private readonly chatQueue: Queue,
         private readonly chatService: ChatService,
         private readonly chatGroupService: ChatGroupService,
+        private readonly conversationService: UserConversationService
     ) { }
 
-    async createMessageInGroup(groupId: string, content: string, userId: string,ConversationMeta: IGroupConversationResult): Promise<MessageDataDto> {
+    async sendSystemMessageToGroup(groupId: string, senderId: string, content: string): Promise<MessageDataDto> {
+        const groupData = await this.chatGroupService.getChatGroupById(groupId, senderId);
+        const memberIds = groupData.members.map(user => user.id);
+        const userIds = memberIds.filter(id => id !== senderId);
+        const meta = await this.conversationService.initOrUpdateGroupConversations(senderId, groupId, userIds);
+        return await this.createMessageInGroup(groupId, content, senderId, meta,);
+    }
+
+    async createMessageInGroup(groupId: string, content: string, userId: string, ConversationMeta: IGroupConversationResult): Promise<MessageDataDto> {
         try {
             const newMessage = this.messageRepository.create({
                 chatGroup: { id: groupId },
@@ -35,6 +46,7 @@ export class MessageService {
                 author: { id: userId }
             })
             const message = await this.messageRepository.save(newMessage);
+            console.log('Saved message:', message);
             const messageData: MessageDataDto | null = await this.getMessageById(message.id)
             if (!messageData) {
                 throw new HttpException(
@@ -105,23 +117,31 @@ export class MessageService {
         }
     }
 
-    private async getMessageById(messageId: string): Promise<MessageDataDto | null> {
-        const messageData = await this.messageRepository.findOne({
-            where: { id: messageId },
-            relations: ['author'],
-            select: {
-                id: true,
-                content: true,
-                author: {
+    async getMessageById(messageId: string): Promise<MessageDataDto | null> {
+        try {
+            const messageData = await this.messageRepository.findOne({
+                where: { id: messageId },
+                relations: ['author'],
+                select: {
                     id: true,
-                    account: true,
-                    name: true,
-                    avatar: true,
+                    content: true,
+                    author: {
+                        id: true,
+                        name: true,
+                        avatar: true,
+                    },
+                    created_At: true,
                 },
-                created_At: true
+            });
+            console.log('Message found after save:', messageData);
+            if (!messageData) {
+                throw new NotFoundException(`Message with id ${messageId} not found`);
             }
-        })
 
-        return messageData
+            return messageData;
+        } catch (error) {
+            throw error; // Ném lỗi lên Controller
+        }
     }
+
 }

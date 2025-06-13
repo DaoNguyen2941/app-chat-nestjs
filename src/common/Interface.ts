@@ -1,5 +1,10 @@
 import { Socket } from 'socket.io';
 import { JWTDecoded } from 'src/modules/auth/auth.dto';
+
+export interface IParamGroupIdVSUserId {
+  userId: string;
+  id:string
+}
 export interface IParamsId {
   id: string;
 }

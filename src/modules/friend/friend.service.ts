@@ -18,6 +18,8 @@ import {
 import { InjectQueue } from '@nestjs/bull';
 import { Queue } from 'bull';
 import { JOB_FRIEND } from "../queue/queue.constants";
+import { ManagerClientSocketService } from 'src/redis/services/managerClient.service';
+
 @Injectable()
 export class FriendService {
     constructor(
@@ -25,6 +27,7 @@ export class FriendService {
         private friendRepository: Repository<Friend>,
         private userService: UserService,
         @InjectQueue(JOB_FRIEND.NAME) private readonly friendQueue: Queue,
+        private readonly managerClientSocketService: ManagerClientSocketService,
         // private readonly eventEmitter: EventEmitter2,
         // private readonly pubService: PubService,
 
@@ -111,12 +114,12 @@ export class FriendService {
 
     }
 
-    async getFriendsList(userId: string) {
+    async getFriendsList(userId: string): Promise<ListFriendDto[]> {
         try {
             const friendData = await this.friendRepository.find({
                 where: [
-                    { sender: { id: userId }, status: "Accepted" },
-                    { receiver: { id: userId }, status: "Accepted" },
+                    { sender: { id: userId }, status: 'Accepted' },
+                    { receiver: { id: userId }, status: 'Accepted' },
                 ],
                 relations: ['sender', 'receiver'],
                 select: {
@@ -126,34 +129,48 @@ export class FriendService {
                         id: true,
                         account: true,
                         avatar: true,
-                        name: true
+                        name: true,
+                        lastSeen: true,
                     },
                     receiver: {
                         id: true,
                         account: true,
                         avatar: true,
-                        name: true
-                    }
-                }
-            })
-            const friendList = friendData.map((friend) => {
-                const { sender, receiver, ...rest } = friend;
-                return {
-                    ...rest,
-                    receiver: sender.id === userId ? receiver : sender,
-                };
+                        name: true,
+                        lastSeen: true,
+
+                    },
+                },
             });
 
+            const friendList = await Promise.all(friendData.map(async (friend) => {
+                const { sender, receiver, ...rest } = friend;
+                const targetUser = sender.id === userId ? receiver : sender;
+
+                const [lastSeenFromSocket, userStatus] = await Promise.all([
+                    this.managerClientSocketService.getLastSeenClientSocket(targetUser.id),
+                    this.managerClientSocketService.UserStatus(targetUser.id),
+                ]);
+
+                return {
+                    ...rest,
+                    receiver: targetUser,
+                    isOnline: userStatus === 'online' ? true : false,
+                    lastSeen: lastSeenFromSocket || targetUser.lastSeen,
+                };
+            }));
+
             return plainToInstance(ListFriendDto, friendList, {
-                excludeExtraneousValues: true
-            })
+                excludeExtraneousValues: true,
+            });
         } catch (error) {
             throw new HttpException(
                 'Đã xảy ra lỗi không xác định',
-                HttpStatus.INTERNAL_SERVER_ERROR
+                HttpStatus.INTERNAL_SERVER_ERROR,
             );
         }
     }
+
 
     private async checkExistence(senderId: string, receiverId: string) {
         const friend = this.friendRepository.findOne({
@@ -224,7 +241,7 @@ export class FriendService {
                 reqFriend,
                 receiverId
             }
-            this.friendQueue.add(JOB_FRIEND.FRIEND_REQUEST,dataReqFriend)
+            this.friendQueue.add(JOB_FRIEND.FRIEND_REQUEST, dataReqFriend)
             // this.pubService.publishEvent(EVENT_FRIEND.FRIEND_REQUEST, dataReqFriend)
             // this.eventEmitter.emit('friend-request', dataReqFriend);
             return plainToInstance(FrienDataDto, friend, {

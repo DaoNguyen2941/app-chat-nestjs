@@ -4,7 +4,8 @@ import { Users } from "src/modules/user/entity/user.entity";
 import { ChatGroups } from "./chatGroup.entity";
 
 @Entity()
-export class GroupInvitations extends BaseEntity {
+export class 
+GroupInvitations extends BaseEntity {
   @ManyToOne(() => ChatGroups, (chatGroup) => chatGroup.invitations, { onDelete: 'CASCADE' })
   @JoinColumn({ name: "groupId" })
   chatGroup: ChatGroups;

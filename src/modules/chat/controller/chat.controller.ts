@@ -8,22 +8,23 @@ import {
     Param,
     Delete,
     Query,
+    ForbiddenException
 } from '@nestjs/common';
-import { IParamsId, IParamsUserId } from 'src/common/Interface';
+import { IParamsId, IParamGroupIdVSUserId } from 'src/common/Interface';
 import { MessageService } from '../service/message.service';
 import { ChatService } from '../service/chat.service';
-import { ChatDataDto, CreateChatDto2, ResCreateChatDto, listChatDto } from '../dto/chat.dto';
-import { createMesagerDto } from '../dto/message.dto';
+import { ChatDataDto, CreateChatDto2, ResCreateChatDto, listChatDto, } from '../dto/chat.dto';
+import { createMesagerDto, MessageDataDto } from '../dto/message.dto';
 import { CustomUserInRequest } from 'src/modules/auth/auth.dto';
 import { UserConversationService } from '../service/userConversation.service';
 import { ChatGroupService } from '../service/chatGroup.service';
-import { CreateChatGroupDto, ChatGroupResponseDto } from '../dto/chatGroup.dto';
+import { CreateChatGroupDto, ChatGroupInfoDto, MenberIdChatGroupDto } from '../dto/chatGroup.dto';
 import { GroupInvitationsService } from '../service/groupInvitations.service';
 import { InvitationStatusDto } from '../dto/invitations.dto';
 import { enumInvitationStatus } from '../dto/invitations.dto';
 import { UseGuards } from '@nestjs/common';
 import { IsGroupManagerGuard } from 'src/modules/auth/guard/is-group-manager.guard';
-import { IGroupConversationResult } from '../interface';
+import { PendingInvitationDto } from '../dto/invitations.dto';
 @Controller('chat')
 export class ChatController {
     constructor(
@@ -34,28 +35,55 @@ export class ChatController {
         private readonly invitationsService: GroupInvitationsService,
     ) { }
 
+    @Delete('group/:id')
+    @UseGuards(IsGroupManagerGuard)
+    async deleteGroup(@Param() param: IParamsId, @Request() request: CustomUserInRequest,) {
+        const { id: groupId } = param;
+        return await this.chatGroupService.deleteGroup(groupId)
+    }
+
     @Delete(':id')
     async softDeleteConversation(
-        @Param() param: IParamsId, @Query('isGroup') isGroup: string, @Request() request: CustomUserInRequest,) {
+        @Param() param: IParamsId,
+        @Query('isGroup') isGroup: string,
+        @Request() request: CustomUserInRequest,) {
         const { id } = param;
         const { user } = request;
         const isGroupBool = isGroup === 'true';
         return await this.conversationService.delete(user.id, id, isGroupBool)
     }
 
-    @Post('group/:id/kick/:userId')
+    @Delete('/group/:id/manager/members/:userId')
     @UseGuards(IsGroupManagerGuard)
-    async kickMember(@Param() param: IParamsId, @Param('userId') userId: string) {
-        const { id } = param;
-        return await this.chatGroupService.kickMemberFromGroup(id, userId,);
+    async kickMember(@Param() param: IParamGroupIdVSUserId, @Request() request: CustomUserInRequest) {
+        const { userId, id: groupId } = param;
+        const { user } = request;
+        if (userId === user.id) {
+            throw new ForbiddenException();
+        }
+        const res = await this.chatGroupService.deleteMemberFromGroup(groupId, userId,);
+        await this.messageService.sendSystemMessageToGroup(groupId, user.id, `<b style="color:#1976d2">${res.userIdToKick?.name}</b> bị đuổi khỏi nhóm`);
+        return res
     }
 
-    @Post('group/:id/leave')
-    async leaveGroup(
-        @Param() param: IParamsId, @Request() request: CustomUserInRequest) {
+    // cần sửa lại dữ liệu gửi về clinet (danh sách những lời mời đã tạo)
+    @Post('group/:id/manager/members')
+    @UseGuards(IsGroupManagerGuard)
+    async AddMember(@Param() param: IParamsId, @Body() data: MenberIdChatGroupDto, @Request() request: CustomUserInRequest) {
         const { id } = param;
         const { user } = request;
-        return await this.chatGroupService.leaveGroup(user.id, id);
+        return await this.invitationsService.createMultipleInvites(user.id, data.memberIds, id)
+    }
+
+    @Delete('group/:id/member/me')
+    async leaveGroup(
+        @Param() param: IParamsId, @Request() request: CustomUserInRequest) {
+        const { id: groupId } = param;
+        const { user } = request;
+        const res = await this.chatGroupService.deleteMemberFromGroup(groupId, user.id);
+        await this.messageService.sendSystemMessageToGroup(groupId, user.id, `<b style="color:#1976d2">${user.name} Đã rời nhóm </b>`);
+        return res;
+
     }
 
     @Patch('group/invitation/:id')
@@ -67,25 +95,29 @@ export class ChatController {
             const isGroup = true
             await this.conversationService.findAndCreate(user.id, chatGroupId, isGroup);
             await this.chatGroupService.addMemberToGroup(chatGroupId, user.id)
+            await this.messageService.sendSystemMessageToGroup(chatGroupId, user.id, `<b style="color:#1976d2">${user.name}</b> vừa tham gia nhóm`);
         }
         return { message }
     }
 
     @Get('group/invitation')
-    async getInvitationList(@Request() request: CustomUserInRequest,) {
+    async getInvitationList(@Request() request: CustomUserInRequest,): Promise<PendingInvitationDto[]> {
         const { user } = request;
-        return await this.invitationsService.getPendingInvitations(user.id)
+        const data = await this.invitationsService.getPendingInvitations(user.id)
+        return data
     }
 
     @Post('group/:id/message')
-    async sendMessageGroup(@Param() param: IParamsId, @Request() request: CustomUserInRequest, @Body() data: createMesagerDto) {
+    async sendMessageGroup(@Param() param: IParamsId, @Request() request: CustomUserInRequest, @Body() data: createMesagerDto): Promise<MessageDataDto> {
         const { id } = param;
         const { user } = request;
-        const groupData = await this.chatGroupService.getChatGroupById(id, user.id)
-        const memberIds = groupData.members.map(user => user.id)
-        const userIds = memberIds.filter(item => item !== user.id);
-        const groupConversationMeta = await this.conversationService.initOrUpdateGroupConversations(user.id, id, userIds)
-        return await this.messageService.createMessageInGroup(id, data.content, user.id,groupConversationMeta)
+        return await this.messageService.sendSystemMessageToGroup(id, user.id, data.content);
+    }
+
+    @Get('group/:id/info')
+    async getChatGroupInfo(@Param() param: IParamsId,): Promise<ChatGroupInfoDto> {
+        const { id } = param;
+        return await this.chatGroupService.getChatGroupInfo(id)
     }
 
     @Get('group/:id')
@@ -105,7 +137,7 @@ export class ChatController {
 
 
     @Post('group')
-    async createChatGroup(@Request() request: CustomUserInRequest, @Body() data: CreateChatGroupDto): Promise<ChatGroupResponseDto> {
+    async createChatGroup(@Request() request: CustomUserInRequest, @Body() data: CreateChatGroupDto): Promise<ChatGroupInfoDto> {
         const { user } = request
         const newGroup = await this.chatGroupService.createChatGroup(user.id, data.name)
         const memberIds = newGroup.members.map(user => user.id)
@@ -115,7 +147,7 @@ export class ChatController {
     }
 
     @Post('group/api2')
-    async createChatGroup2(@Request() request: CustomUserInRequest, @Body() data: CreateChatGroupDto): Promise<ChatGroupResponseDto> {
+    async createChatGroup2(@Request() request: CustomUserInRequest, @Body() data: CreateChatGroupDto): Promise<ChatGroupInfoDto> {
         const { user } = request
         const newGroup = await this.chatGroupService.createChatGroup2(user.id, data.name, data.members)
         const memberIds = newGroup.members.map(user => user.id)
@@ -133,7 +165,13 @@ export class ChatController {
         return data;
     }
 
-    @Get('list')
+    @Get('/group')
+    async getListGroupChat(@Request() request: CustomUserInRequest): Promise<listChatDto[]> {
+        const { user } = request
+        return this.conversationService.getGroupConversations(user.id)
+    }
+
+    @Get('/list')
     async getListChat(@Request() request: CustomUserInRequest): Promise<listChatDto[]> {
         const { user } = request
         return this.conversationService.getListConversations(user.id)
@@ -159,7 +197,7 @@ export class ChatController {
     @Patch(':id/unreadCount')
     async readAllMessages(@Param() param: IParamsId, @Request() request: CustomUserInRequest) {
         const { user } = request;
-        const chat = await this.chatService.getchatById(param.id, user.id);
+        await this.chatService.getchatById(param.id, user.id);
         return await this.conversationService.readAll(param.id, user.id)
     }
 }

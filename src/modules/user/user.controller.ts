@@ -23,12 +23,13 @@ import {
     ConfirmOtpDto,
     resetPasswordDto,
     NameUserDto,
+    typeUser
 } from "./user.dto";
 import { plainToInstance } from "class-transformer";
 import { SkipAuth } from "src/common/decorate/skipAuth";
 import { ParamTokenGuard } from "./guard/analysisParam.guard";
 import JwtResetPasswordGuard from "./guard/jwt-resetPassword.guard";
-import { IParamsKeyWord } from "src/common/Interface";
+import { IParamsKeyWord,IParamsId } from "src/common/Interface";
 import { FileInterceptor } from "@nestjs/platform-express";
 // npm install --save-dev @types/express @types/multer
 import { Express } from 'express';
@@ -46,15 +47,13 @@ export class UserController {
             .addFileTypeValidator({
                 fileType: 'image'
             })
-            // .addMaxSizeValidator({
-            //   maxSize: 1000
-            // })
+           .addMaxSizeValidator({ maxSize: 2_000_000 })
             .build({
                 errorHttpStatusCode: HttpStatus.UNPROCESSABLE_ENTITY
             }),
     ) file: Express.Multer.File,) {
-        console.log(file);
-        return file
+        const { user } = request
+        return this.userService.uploadAvatar(file, user.id)
     }
 
     @Patch(`/name`)
@@ -141,5 +140,10 @@ export class UserController {
         return plainToInstance(userDataDto, userData, {
             excludeExtraneousValues: true,
         })
+    }
+
+    @Get('/:id')
+    async getUser(@Param() param: IParamsId): Promise<typeUser> {
+        return await this.userService.getUserDataById(param.id)
     }
 }

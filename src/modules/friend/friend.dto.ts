@@ -34,13 +34,20 @@ export class BasicFriendDto {
     @Expose()
     @IsEnum(StatusFriend)
     status: string;
+
+    @Expose()
+    @IsBoolean()
+    isOnline: boolean;
+
+    @Expose()
+    lastSeen: Date | null
 }
 
 export class updateFriendDto extends PickType(
     BasicFriendDto, ["status", "id"] as const
 ) { }
 
-export class FrienDataDto extends PickType (
+export class FrienDataDto extends PickType(
     BasicFriendDto, [`id`, 'status'] as const
 ) {
     @Transform(({ obj }) => plainToInstance(typeUser, obj.receiver))
@@ -51,11 +58,11 @@ export class FrienDataDto extends PickType (
 export class CreateFriendDto {
     @Expose()
     @IsString()
-    receiverId : string
+    receiverId: string
 }
 
 export class ListFriendDto extends PickType(
-    BasicFriendDto, ["id", "status",] as const
+    BasicFriendDto, ["id", "status", 'isOnline',"lastSeen"] as const
 ) {
     @Transform(({ obj }) => plainToInstance(typeUser, obj.receiver,
         { excludeExtraneousValues: true }

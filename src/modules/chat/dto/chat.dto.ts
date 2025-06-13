@@ -4,6 +4,7 @@ import { Expose, Transform, Type } from "class-transformer";
 import { IsString, IsBoolean, IsNotEmpty, IsEnum, IsArray, IsNumber, } from 'class-validator';
 import { typeUser } from 'src/modules/user/user.dto';
 import { MessageDataDto } from './message.dto'
+import { plainToInstance } from 'class-transformer';
 
 export enum enumUserStatus {
     online = 'online',
@@ -65,23 +66,24 @@ export class ChatData {
     name: string | null
 }
 
-export class ChatDataDto extends PickType(ChatData, ['id', 'isGroup','name','members'] as const) {
+export class ChatDataDto extends PickType(ChatData, ['id', 'isGroup', 'name', 'members'] as const) {
     @Expose()
     @Transform(({ obj }) => {
         if (!obj.sender || !obj.receiver || !obj.userId) return null;
-        return obj.sender.id === obj.userId ? obj.receiver : obj.sender;
+        const userRaw = obj.sender.id === obj.userId ? obj.receiver : obj.sender;
+        return plainToInstance(typeUser, userRaw, { excludeExtraneousValues: true });
     })
     user: typeUser;
 
-    //sửa lại database cột message  của groupchat và chat phải giống nhau
-    //  thì xóa đoạn code bên dưới và thêm tên cột vòa PickType
     @Expose()
-    @Type(() => MessageDataDto)
     @Transform(({ obj }) => {
-        const message = obj.message || obj.messages;
-        return message
+        const messages = obj.message || obj.messages || [];
+        return messages.map((msg: any) =>
+            plainToInstance(MessageDataDto, msg, { excludeExtraneousValues: true })
+        );
     })
-    message: MessageDataDto[] ;
+    @Type(() => MessageDataDto)
+    message: MessageDataDto[];
 
 }
 
@@ -105,7 +107,7 @@ export class ChatGroupDto {
 
 }
 
-export class listChatDto  {
+export class listChatDto {
     @Expose()
     @Transform(({ obj, value }) => {
         if (obj.IsGroup) {
@@ -116,14 +118,13 @@ export class listChatDto  {
     id: string;
 
     @Expose()
-    @Transform(({ obj, value }) => {        
+    @Transform(({ obj, value }) => {
         if (obj.chat) {
             // Xác định người còn lại trong cuộc trò chuyện
             const userId = obj.currentUserId; // Lấy userId từ context (truyền vào từ service)
             const otherUser = obj.chat.sender.id === userId ? obj.chat.receiver : obj.chat.sender;
             return {
                 id: otherUser.id,
-                account: otherUser.account,
                 avatar: otherUser.avatar,
                 name: otherUser.name
             };
@@ -159,6 +160,6 @@ export class listChatDto  {
     @Expose()
     @IsBoolean()
     IsGroup: boolean
-    
+
 }
 

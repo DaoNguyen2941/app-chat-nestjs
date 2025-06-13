@@ -24,7 +24,7 @@ import { InjectQueue } from '@nestjs/bull';
 import { Queue } from 'bull';
 import { generateOtp } from 'src/common/utils';
 import { typeUser } from './user.dto';
-
+import { StorageService } from 'src/object-storage/storage.service';
 @Injectable()
 export class UserService {
     constructor(
@@ -33,10 +33,31 @@ export class UserService {
         private jwtService: JwtService,
         @InjectQueue('mail-queue') private readonly mailQueue: Queue,
         private readonly redisCacheService: RedisCacheService,
+        private readonly storageService: StorageService
     ) { }
 
-    async updateUser(userId:string, data: any) {
-
+    async uploadAvatar(file: Express.Multer.File, userId: string) {
+        // 1. Tìm avatar cũ trong DB
+        const oldAvatar = await this.storageService.getUserAvatar(userId)        
+        // 2. Upload avatar mới
+        const newFile = await this.storageService.uploadImage(file, userId);
+        // 3. Cập nhật user.avatar
+        const updateResult = await this.usersRepository.update(userId, {
+            avatar: newFile.url,
+        });
+        if (updateResult.affected === 0) {
+            // rollback nếu lỗi
+            await this.storageService.deleteFile(newFile.key);
+            throw new HttpException(
+                { status: HttpStatus.BAD_REQUEST, error: 'Request denied' },
+                HttpStatus.BAD_REQUEST,
+            );
+        }
+        // 4. Xóa avatar cũ nếu có
+        if (oldAvatar) {
+            await  this.storageService.deleteFile(oldAvatar.key);
+        }
+        return { avatar: newFile };
     }
 
     async setNameUser(userId: string, name: string) {
@@ -57,7 +78,7 @@ export class UserService {
         try {
             const users = await this.usersRepository.find({
                 where: { id: In(userIds) },
-                select: ['id', 'account', 'avatar', 'name'],
+                select: ['id', 'avatar', 'name'],
             });
             return users
         } catch (error) {
@@ -97,24 +118,21 @@ export class UserService {
         }
     }
 
-    async getUserDataById(userId: string): Promise<BasicUserDataDto> {
+    async getUserDataById(userId: string): Promise<typeUser> {
         try {
             const account = await this.usersRepository.findOne({
                 where: { id: userId },
                 select: {
                     id: true,
-                    account: true,
-                    email: true,
                     avatar: true,
-                    name: true
+                    name: true,
                 }
             });
 
             if (!account) {
                 throw new NotFoundException('User not found');
             }
-
-            return plainToInstance(BasicUserDataDto, account, {
+            return plainToInstance(typeUser, account, {
                 excludeExtraneousValues: true,
             })
 
@@ -164,12 +182,12 @@ export class UserService {
             )
             .where("user.name LIKE :keyword", { keyword: `%${keyword}%` })
             .select([
-                "user.id AS id", // 👈 Đảm bảo key đúng
+                "user.id AS id",
                 "user.account AS account",
                 "user.name AS name",
                 "user.avatar AS avatar",
-                "f.status AS status", // Lấy trạng thái kết bạn
-                "f.senderId AS senderId", // Lấy senderId từ bảng friends
+                "f.status AS status",
+                "f.senderId AS senderId",
                 "f.id AS friendId"
             ])
             .getRawMany();
@@ -236,10 +254,10 @@ export class UserService {
 
     public async changeUserPassword(userId: string, oldPassword: string, newPassword: string) {
         try {
-            const user  = await this.getById(userId)
+            const user = await this.getById(userId)
             const isPasswordMatching = await bcrypt.compare(
                 oldPassword,
-                user ?.password
+                user?.password
             );
             if (!isPasswordMatching) {
                 throw new BadRequestException('Mật khẩu cũ không đúng');
@@ -289,7 +307,7 @@ export class UserService {
             const token = this.jwtService.sign(payload, {
                 secret: jwtConstants.resetPasswordSecret
             });
-            
+
             return {
                 user: account,
                 token: token,
