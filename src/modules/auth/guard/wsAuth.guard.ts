@@ -1,4 +1,3 @@
-// ws-auth.guard.ts
 import { Injectable } from '@nestjs/common';
 import { ExecutionContext, CanActivate } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';

@@ -20,7 +20,7 @@ import { SkipAuth } from "src/common/decorate/skipAuth";
 import { LocalAuthGuard } from "./guard/local-auth.guard";
 import JwtRefreshGuard from "./guard/Jwt-Refresh.guard";
 import { UserService } from "src/modules/user/user.service";
-import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { ApiTags, ApiOperation } from '@nestjs/swagger';
 
 @Controller('auth')
 @ApiTags('auth')

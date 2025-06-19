@@ -138,9 +138,7 @@ export class FriendService {
                         lastSeen: true,
                     },
                 },
-            });
-            console.log(friendRelations);
-            
+            });            
 
             const friends = await Promise.all(
                 friendRelations.map(async (relation) => {
@@ -166,7 +164,6 @@ export class FriendService {
             });
 
         } catch (error) {
-            console.log('Lỗi khi lấy danh sách bạn bè:', error);
             throw new HttpException(
                 'Đã xảy ra lỗi không xác định',
                 HttpStatus.INTERNAL_SERVER_ERROR,

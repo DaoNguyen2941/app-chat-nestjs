@@ -3,7 +3,6 @@ import { ConfigService } from '@nestjs/config';
 import { config as dotenvConfig } from 'dotenv';
 dotenvConfig({ path: '.env' });
 const configService = new ConfigService();
-import { CreateFile1747749497666 } from './migrations/1747749497666-CreateFile';
 const dataSource = new DataSource({
   type: 'mysql',  
   host: configService.get<string>('DATABASE_HOST'),

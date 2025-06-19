@@ -1,4 +1,3 @@
-// src/common/guards/is-group-manager.guard.ts
 import {
     CanActivate,
     ExecutionContext,

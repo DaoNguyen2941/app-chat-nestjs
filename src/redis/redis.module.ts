@@ -3,12 +3,6 @@ import { RedisModule, } from '@nestjs-modules/ioredis';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { RedisCacheService } from './services/redisCache.service';
 import { ManagerClientSocketService } from './services/managerClient.service';
-import { SubService } from './pubVsSub/service/subService';
-import { PubService } from './pubVsSub/service/pubService';
-import { ChatListener } from './pubVsSub/listeners/chat.listener';
-import { ChatGateway } from 'src/gateways/chat.gateway';
-import { FriendListener } from './pubVsSub/listeners/friend.listener';
-import { FriendGateway } from 'src/gateways/friend.gateway';
 import { GatewaysModule } from 'src/gateways/gateway.module';
 @Global()
 @Module({

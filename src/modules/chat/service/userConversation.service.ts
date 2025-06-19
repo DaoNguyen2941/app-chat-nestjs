@@ -62,7 +62,6 @@ export class UserConversationService {
 
             return dataConversation;
         } catch (error) {
-            console.log(`Failed to get group conversations for user: ${error.message}`, error.stack);
             throw new InternalServerErrorException("Không thể lấy danh sách nhóm chat");
 
         }

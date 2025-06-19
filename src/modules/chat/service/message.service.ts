@@ -263,7 +263,6 @@ async getOlderMessagesGroup(
                 author: { id: userId }
             })
             const message = await this.messageRepository.save(newMessage);
-            console.log('Saved message:', message);
             const messageData: MessageDataDto | null = await this.getMessageById(message.id)
             if (!messageData) {
                 throw new HttpException(
@@ -350,14 +349,12 @@ async getOlderMessagesGroup(
                     created_At: true,
                 },
             });
-            console.log('Message found after save:', messageData);
             if (!messageData) {
                 throw new NotFoundException(`Message with id ${messageId} not found`);
             }
-
             return messageData;
         } catch (error) {
-            throw error; // Ném lỗi lên Controller
+            throw error; 
         }
     }
 
