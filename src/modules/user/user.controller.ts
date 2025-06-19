@@ -29,25 +29,29 @@ import { plainToInstance } from "class-transformer";
 import { SkipAuth } from "src/common/decorate/skipAuth";
 import { ParamTokenGuard } from "./guard/analysisParam.guard";
 import JwtResetPasswordGuard from "./guard/jwt-resetPassword.guard";
-import { IParamsKeyWord,IParamsId } from "src/common/Interface";
+import { IParamsKeyWord, IParamsId } from "src/common/interface/Interface";
 import { FileInterceptor } from "@nestjs/platform-express";
 // npm install --save-dev @types/express @types/multer
 import { Express } from 'express';
+import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 
 @Controller('user')
+@ApiTags('Users')
 export class UserController {
     constructor(
         private readonly userService: UserService,
     ) { }
 
     @Post(`/avatar`)
+    @ApiOperation({ summary: 'Thay đổi avatar' })
+    // @ApiResponse({ status: 200, description: 'Thành công' })
     @UseInterceptors(FileInterceptor('file'))
     updateAvatarUser(@Request() request: CustomUserInRequest, @UploadedFile(
         new ParseFilePipeBuilder()
             .addFileTypeValidator({
                 fileType: 'image'
             })
-           .addMaxSizeValidator({ maxSize: 2_000_000 })
+            .addMaxSizeValidator({ maxSize: 2_000_000 })
             .build({
                 errorHttpStatusCode: HttpStatus.UNPROCESSABLE_ENTITY
             }),
@@ -57,6 +61,8 @@ export class UserController {
     }
 
     @Patch(`/name`)
+    @ApiOperation({ summary: 'Cập nhập tên người dùng' })
+    @ApiResponse({ status: 200, description: 'Thành công' })
     updateNameUser(@Request() request: CustomUserInRequest, @Body() data: NameUserDto) {
         const { user } = request
         const { name } = data
@@ -64,6 +70,8 @@ export class UserController {
     }
 
     @Get(`/search/:keyword`)
+    @ApiOperation({ summary: 'Tìm kiếm người dùng' })
+    @ApiResponse({ status: 200, description: 'Thành công' })
     async searchUser(@Param() param: IParamsKeyWord, @Request() request: CustomUserInRequest) {
         const { user } = request
         const userList = await this.userService.SearchUsersAndFriendStatus(param.keyword, user.id);
@@ -72,6 +80,8 @@ export class UserController {
 
     @SkipAuth()
     @UseGuards(JwtResetPasswordGuard)
+    @ApiOperation({ summary: 'Đặt lại mật khẩu' })
+    @ApiResponse({ status: 200, description: 'Thành công' })
     @Post('/identify/forgot-password/reset')
     async resetPassword(@Body() data: resetPasswordDto, @Request() request: CustomUserInRequest) {
         const { password } = data;
@@ -85,6 +95,8 @@ export class UserController {
 
     @SkipAuth()
     @UseGuards(ParamTokenGuard)
+    @ApiOperation({ summary: 'xác nhận mã OTP' })
+    @ApiResponse({ status: 200, description: 'Thành công' })
     @Post('/identify/forgot-password/otp/validate/:token')
     async otpValidate(@Body() data: ConfirmOtpDto, @Request() request: CustomUserInRequest) {
         const { OTP } = data
@@ -109,6 +121,8 @@ export class UserController {
 
     @SkipAuth()
     @UseGuards(ParamTokenGuard)
+    @ApiOperation({ summary: 'Lấy mã OTP về email' })
+    @ApiResponse({ status: 200, description: 'Thành công' })
     @Get('/identify/forgot-password/otp/:token')
     async getOTPForgotPassword(@Request() request: UserDataInReq) {
         const email = request.user.email
@@ -119,11 +133,15 @@ export class UserController {
     }
 
     @SkipAuth()
+    @ApiOperation({ summary: 'tìm tài khoản để tiến hành nhận dạng' })
+    @ApiResponse({ status: 200, description: 'Thành công' })
     @Post('/identify')
     async searchAccount(@Body() data: searchAccountOrEmailDto) {
         return await this.userService.findUserByIdentifier(data.keyword)
     }
 
+    @ApiOperation({ summary: 'Đổi mật khẩu' })
+    @ApiResponse({ status: 200, description: 'Thành công' })
     @Post('/password/change')
     async updatePassword(@Body() data: dataUpdatePasswordDto, @Request() req: UserDataInReq) {
         const { user } = req;
@@ -134,6 +152,8 @@ export class UserController {
         }
     }
 
+    @ApiOperation({ summary: 'Lấy thông tin người dùng' })
+    @ApiResponse({ status: 200, description: 'Thành công' })
     @Get('/profile')
     async getProfile(@Request() request: CustomUserInRequest): Promise<userDataDto> {
         const userData = await this.userService.getById(request.user.id)
@@ -142,6 +162,8 @@ export class UserController {
         })
     }
 
+    @ApiOperation({ summary: 'Lấy thông tin người dùng' })
+    @ApiResponse({ status: 200, description: 'Thành công' })
     @Get('/:id')
     async getUser(@Param() param: IParamsId): Promise<typeUser> {
         return await this.userService.getUserDataById(param.id)

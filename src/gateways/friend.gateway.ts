@@ -11,7 +11,7 @@ import { WsAuthGuard } from 'src/modules/auth/guard/wsAuth.guard';
 import { UseGuards } from "@nestjs/common";
 import { Socket, Server } from "socket.io";
 import { OnEvent } from "@nestjs/event-emitter";
-import { IExtendUserInSocket, IUserInSocket } from "src/common/Interface";
+import { IExtendUserInSocket, IUserInSocket } from "src/common/interface/Interface";
 import { DataEventRequestDto } from "src/modules/friend/friend.dto";
 @WebSocketGateway()
 export class FriendGateway {

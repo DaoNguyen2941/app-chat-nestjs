@@ -12,7 +12,7 @@ import { UseGuards } from "@nestjs/common";
 import { Socket, Server } from "socket.io";
 import { OnEvent } from "@nestjs/event-emitter";
 import { IOutgoingMessageData, IOutgoingMessageGroupData } from "src/modules/chat/interface";
-import { IExtendUserInSocket, IUserInSocket } from "src/common/Interface";
+import { IExtendUserInSocket, IUserInSocket } from "src/common/interface/Interface";
 
 @WebSocketGateway()
 export class ChatGateway {

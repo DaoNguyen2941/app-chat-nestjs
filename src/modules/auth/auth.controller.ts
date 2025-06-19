@@ -20,8 +20,10 @@ import { SkipAuth } from "src/common/decorate/skipAuth";
 import { LocalAuthGuard } from "./guard/local-auth.guard";
 import JwtRefreshGuard from "./guard/Jwt-Refresh.guard";
 import { UserService } from "src/modules/user/user.service";
+import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 
 @Controller('auth')
+@ApiTags('auth')
 export class AuthController {
   constructor(
     private readonly authService: AuthService,
@@ -30,6 +32,7 @@ export class AuthController {
 
 
   @Post('/logout')
+  @ApiOperation({ summary: 'Đang xuất' })
   async logour(@Request() request: CustomUserInRequest) {
     await this.userService.removeRefreshToken(request.user.id)
     request.res.clearCookie('Refresh', {
@@ -44,6 +47,7 @@ export class AuthController {
 
   @SkipAuth()
   @UseGuards(LocalAuthGuard)
+  @ApiOperation({ summary: 'Đang nhập' })
   @Post('/login')
   async login(@Request() request: CustomUserInRequest): Promise<any> {
     const { user } = request;
@@ -60,6 +64,7 @@ export class AuthController {
   @SkipAuth()
   @UseGuards(JwtRefreshGuard)
   @Get('/refresh')
+  @ApiOperation({ summary: 'Làm mới token' })
   refresh(@Request() request: CustomUserInRequest) {
     const { user } = request;
     const { accessTokenCookie, token } = this.authService.createAuthCookie(user);
@@ -72,6 +77,7 @@ export class AuthController {
 
   @SkipAuth()
   @Post('/register')
+  @ApiOperation({ summary: 'Đang ký tài khoản' })
   async register2(@Body() data: RegisterDto): Promise<RegisterResponseDto> {
     const userNew = await this.authService.register(data)
     await this.authService.emailAuthentication(data.email)
@@ -79,9 +85,10 @@ export class AuthController {
   }
 
   @SkipAuth()
+  @ApiOperation({ summary: 'Xác thực OTP' })
   @Post('/register/verify-otp')
-  async confirmOtp2(@Body() confirmOtpData: ConfirmOtpDto) {
-    return await this.authService.verifyOTP2(confirmOtpData)
+  async confirmOtp(@Body() confirmOtpData: ConfirmOtpDto) {
+    return await this.authService.verifyOTP(confirmOtpData)
   }
 
 }

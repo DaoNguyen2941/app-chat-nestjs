@@ -4,7 +4,7 @@
   "description": "",
   "author": "",
   "private": true,
-  "license": "UNLICENSED",
+  "license": "MIT",
   "scripts": {
     "typeorm": "ts-node -r tsconfig-paths/register ./node_modules/typeorm/cli.js",
     "typeorm:run-migrations": "npm run typeorm migration:run -- -d ./src/core/database/typeOrm.config.ts",
@@ -41,6 +41,7 @@
     "@nestjs/passport": "^10.0.3",
     "@nestjs/platform-express": "^10.4.17",
     "@nestjs/platform-socket.io": "^10.4.6",
+    "@nestjs/swagger": "^7.4.2",
     "@nestjs/throttler": "^6.4.0",
     "@nestjs/typeorm": "^10.0.2",
     "@nestjs/websockets": "^10.4.6",
@@ -65,6 +66,7 @@
     "passport-local": "^1.0.0",
     "reflect-metadata": "^0.2.0",
     "rxjs": "^7.8.1",
+    "swagger-ui-express": "^5.0.1",
     "typeorm": "^0.3.20",
     "uuid": "^11.1.0"
   },

@@ -62,7 +62,7 @@ export class CreateFriendDto {
 }
 
 export class ListFriendDto extends PickType(
-    BasicFriendDto, ["id", "status", 'isOnline',"lastSeen"] as const
+    BasicFriendDto, ["id", "status", 'isOnline', "lastSeen"] as const
 ) {
     @Transform(({ obj }) => plainToInstance(typeUser, obj.receiver,
         { excludeExtraneousValues: true }
@@ -84,4 +84,10 @@ export class FriendRequestDto extends PickType(
 export class DataEventRequestDto {
     reqFriend: FriendRequestDto;
     receiverId: string
+}
+
+export class StatusFriendDto {
+    @IsEnum(StatusFriend)
+    @IsNotEmpty()
+    status: StatusFriend;
 }

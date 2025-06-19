@@ -3,7 +3,7 @@ import { JwtService } from '@nestjs/jwt';
 import { ServerOptions } from 'socket.io';
 import { Injectable, Logger } from '@nestjs/common';
 import { jwtConstants } from 'src/modules/auth/constants';
-import { IExtendUserInSocket, IUserInSocket } from 'src/common/Interface';
+import { IExtendUserInSocket, IUserInSocket } from 'src/common/interface/Interface';
 import { ManagerClientSocketService } from 'src/redis/services/managerClient.service';
 import { JWTDecoded } from 'src/modules/auth/auth.dto';
 import { InjectQueue } from '@nestjs/bull';

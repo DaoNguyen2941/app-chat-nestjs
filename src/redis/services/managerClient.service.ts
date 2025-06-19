@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { RedisCacheService } from 'src/redis/services/redisCache.service';
-import { IExtendUserInSocket, IUserInSocket } from 'src/common/Interface';
+import { IExtendUserInSocket, IUserInSocket } from 'src/common/interface/Interface';
 import { enumUserStatus } from 'src/modules/chat/dto/chat.dto';
 @Injectable()
 export class ManagerClientSocketService {

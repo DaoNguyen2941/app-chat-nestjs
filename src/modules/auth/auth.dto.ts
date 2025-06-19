@@ -1,23 +1,28 @@
 
 import { OmitType, PickType } from '@nestjs/mapped-types'
-import { Expose} from 'class-transformer';
+import { Expose } from 'class-transformer';
 import { IsString, IsEmail, IsNotEmpty, IsNumber } from 'class-validator';
 import { userDataDto } from 'src/modules/user/user.dto';
 import { Response } from 'express';
+import { ApiProperty } from '@nestjs/swagger';
+
 export class RegisterDto {
   @Expose()
   @IsNotEmpty()
   @IsString()
+  @ApiProperty({ example: 'nameacoungt', description: 'Tên tài khoản' })
   account: string;
 
   @Expose()
   @IsNotEmpty()
   @IsString()
+  @ApiProperty({ example: 'password@xyz', description: 'Mật khẩu' })
   password: string;
 
   @Expose()
   @IsNotEmpty()
   @IsEmail()
+  @ApiProperty({ example: 'user@example.com', description: 'Email người dùng' })
   email: string;
 }
 
@@ -25,6 +30,7 @@ export class JWTPayload {
   @Expose()
   @IsNotEmpty()
   @IsString()
+  @ApiProperty({ example: 'nameacoungt', description: 'Tên tài khoản' })
   account: string;
 
   @Expose()
@@ -35,11 +41,13 @@ export class JWTPayload {
   @Expose()
   @IsNotEmpty()
   @IsString()
+  @ApiProperty({ example: 'https://example.com/avatar.jpg', description: 'Ảnh đại diện' })
   avatar: string;
 
   @Expose()
   @IsNotEmpty()
   @IsString()
+  @ApiProperty({ example: 'Nguyễn Văn A', description: 'Tên người dùng' })
   name: string;
 }
 
@@ -96,11 +104,11 @@ export class LoginResponseDto {
   userData: userDataDto
 }
 
-export class RegisterResponseDto extends OmitType(RegisterDto, ['password'] as const) {}
+export class RegisterResponseDto extends OmitType(RegisterDto, ['password'] as const) { }
 
 export class RegisterResponseDto2 {
   userData: RegisterResponseDto;
-  message:string
+  message: string
 }
 
 export class ConfirmOtpDto extends PickType(RegisterDto, ['email'] as const) {

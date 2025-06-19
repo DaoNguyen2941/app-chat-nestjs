@@ -22,7 +22,9 @@ export class ChatService {
         @InjectRepository(Chat)
         private readonly chatRepository: Repository<Chat>,
         private readonly usersService: UserService,
-        private readonly userConversationService: UserConversationService
+        private readonly userConversationService: UserConversationService,
+        private readonly messageService: MessageService
+
     ) { }
 
     async getListChat(userId: string): Promise<Chats[]> {
@@ -51,6 +53,49 @@ export class ChatService {
         })
     }
 
+    async getChatDataById2(chatId: string,userId: string,): Promise<ChatDataDto> {
+        try {
+            const chat = await this.chatRepository
+                .createQueryBuilder('c')
+                .leftJoin('c.sender', 's')
+                .leftJoin('c.receiver', 'r')
+                .addSelect([
+                    's.id', 's.name', 's.avatar',
+                    'r.id', 'r.name', 'r.avatar',
+                ])
+                .where('c.id = :chatId', { chatId })
+                .getOne();
+
+            if (!chat) {
+                throw new NotFoundException('Không tìm thấy cuộc trò chuyện');
+            }
+
+            const startTime = await this.userConversationService.getStartTime(chatId, userId, false);
+
+            // Lấy tin nhắn có phân trang
+            const { messages, hasMore, nextCursor } =
+                await this.messageService.getMessagesByChatId(chatId, startTime, 15);
+
+            // Trả về dữ liệu đã ánh xạ
+            return plainToInstance(ChatDataDto, {
+                ...chat,
+                message: messages,
+                userId,
+                isGroup: false,
+                pagination: {
+                    hasMore,
+                    nextCursor,
+                },
+            }, {
+                excludeExtraneousValues: true,
+            });
+
+        } catch (error) {
+            console.error('Lỗi khi lấy dữ liệu cuộc trò chuyện:', error);
+            throw new InternalServerErrorException('Không thể lấy dữ liệu trò chuyện');
+        }
+    }
+
     async getchatById(chatId: string, userId: string): Promise<ResCreateChatDto> {
         try {
             const chatData = await this.chatRepository
@@ -60,8 +105,8 @@ export class ChatService {
                 .leftJoinAndSelect('c.receiver', 'r')
                 .select([
                     "c.id",
-                    "s.id", "s.name", "s.avatar", "s.account",
-                    "r.id", "r.name", "r.avatar", "r.account",
+                    "s.id", "s.name", "s.avatar",
+                    "r.id", "r.name", "r.avatar",
                 ])
                 .getOne();
 
@@ -78,7 +123,6 @@ export class ChatService {
         }
     }
 
-    // cần sửa lại truy vấn dữ liệu thừa dữ liệu nhạy cảm
     async getChatDataById(chatId: string, userId: string): Promise<ChatDataDto> {
         try {
             const startTime = await this.userConversationService.getStartTime(chatId, userId, false);

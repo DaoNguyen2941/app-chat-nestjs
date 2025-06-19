@@ -10,11 +10,11 @@ import {
     Query,
     ForbiddenException
 } from '@nestjs/common';
-import { IParamsId, IParamGroupIdVSUserId } from 'src/common/Interface';
+import { IParamsId, IParamGroupIdVSUserId } from 'src/common/interface/Interface';
 import { MessageService } from '../service/message.service';
 import { ChatService } from '../service/chat.service';
 import { ChatDataDto, CreateChatDto2, ResCreateChatDto, listChatDto, } from '../dto/chat.dto';
-import { createMesagerDto, MessageDataDto } from '../dto/message.dto';
+import { createMesagerDto, MessageDataDto, GetMessagesQueryDto } from '../dto/message.dto';
 import { CustomUserInRequest } from 'src/modules/auth/auth.dto';
 import { UserConversationService } from '../service/userConversation.service';
 import { ChatGroupService } from '../service/chatGroup.service';
@@ -25,7 +25,10 @@ import { enumInvitationStatus } from '../dto/invitations.dto';
 import { UseGuards } from '@nestjs/common';
 import { IsGroupManagerGuard } from 'src/modules/auth/guard/is-group-manager.guard';
 import { PendingInvitationDto } from '../dto/invitations.dto';
+import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+
 @Controller('chat')
+@ApiTags('chat')
 export class ChatController {
     constructor(
         private readonly messageService: MessageService,
@@ -35,9 +38,33 @@ export class ChatController {
         private readonly invitationsService: GroupInvitationsService,
     ) { }
 
+    @Get('group/:id/message')
+    async getOlderMessagesGroup(
+        @Query() query: GetMessagesQueryDto,
+        @Param() param: IParamsId,
+        @Request() request: CustomUserInRequest
+    ) {
+        const { user } = request;
+        const { id: chatId } = param;
+        const { startCursor, limit } = query;
+        return this.messageService.getOlderMessagesGroup(chatId,user.id, startCursor, limit);
+    }
+
+    @Get(':id/message')
+    async getOlderMessages(
+        @Query() query: GetMessagesQueryDto,
+        @Param() param: IParamsId,
+        @Request() request: CustomUserInRequest
+    ) {
+        const { user } = request;
+        const { id: chatId } = param;
+        const { startCursor, limit } = query;
+        return this.messageService.getOlderMessages(chatId, user.id, startCursor, limit);
+    }
+
     @Delete('group/:id')
     @UseGuards(IsGroupManagerGuard)
-    async deleteGroup(@Param() param: IParamsId, @Request() request: CustomUserInRequest,) {
+    async deleteGroup(@Param() param: IParamsId,) {
         const { id: groupId } = param;
         return await this.chatGroupService.deleteGroup(groupId)
     }
@@ -94,8 +121,8 @@ export class ChatController {
         if (action === enumInvitationStatus.ACCEPTED) {
             const isGroup = true
             await this.conversationService.findAndCreate(user.id, chatGroupId, isGroup);
-            await this.chatGroupService.addMemberToGroup(chatGroupId, user.id)
-            await this.messageService.sendSystemMessageToGroup(chatGroupId, user.id, `<b style="color:#1976d2">${user.name}</b> vừa tham gia nhóm`);
+           const {userData} = await this.chatGroupService.addMemberToGroup(chatGroupId, user.id)
+            await this.messageService.sendSystemMessageToGroup(chatGroupId, userData.id, `<b style="color:#1976d2">${userData.name}</b> vừa tham gia nhóm`);
         }
         return { message }
     }
@@ -124,7 +151,7 @@ export class ChatController {
     async getChatGroupData(@Param() param: IParamsId, @Request() request: CustomUserInRequest,) {
         const { id } = param;
         const { user } = request;
-        return await this.chatGroupService.getChatGroupById(id, user.id)
+        return await this.chatGroupService.getChatGroupById2(id, user.id)
     }
 
     @Patch('group/:id/unreadCount')
@@ -180,8 +207,8 @@ export class ChatController {
     @Get(':id')
     async getChatData(@Param() param: IParamsId, @Request() request: CustomUserInRequest): Promise<ChatDataDto> {
         const { user } = request;
-        const { id } = param;
-        const dataChat = await this.chatService.getChatDataById(id, user.id);
+        const { id: chatId } = param;
+        const dataChat = await this.chatService.getChatDataById2(chatId, user.id);
         return dataChat
     }
 

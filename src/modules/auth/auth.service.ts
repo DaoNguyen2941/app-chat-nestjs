@@ -85,7 +85,7 @@ export class AuthService {
         }
     }
 
-    async verifyOTP2(dataOTP: ConfirmOtpDto): Promise<RegisterResponseDto> {
+    async verifyOTP(dataOTP: ConfirmOtpDto): Promise<RegisterResponseDto> {
         try {
             const userNew: RegisterDto | null = await this.redisCacheService.getCache(`newAccount ${dataOTP.email}`)
             const userOtp: { otp: string } | null = await this.redisCacheService.getCache(`otp ${dataOTP.email}`)

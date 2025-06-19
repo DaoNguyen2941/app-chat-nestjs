@@ -66,6 +66,14 @@ export class ChatData {
     name: string | null
 }
 
+export class PaginationDto {
+    @Expose()
+    hasMore: boolean;
+
+    @Expose()
+    nextCursor: string | null;
+}
+
 export class ChatDataDto extends PickType(ChatData, ['id', 'isGroup', 'name', 'members'] as const) {
     @Expose()
     @Transform(({ obj }) => {
@@ -84,6 +92,10 @@ export class ChatDataDto extends PickType(ChatData, ['id', 'isGroup', 'name', 'm
     })
     @Type(() => MessageDataDto)
     message: MessageDataDto[];
+
+    @Expose()
+    @Type(() => PaginationDto)
+    pagination?: PaginationDto;
 
 }
 

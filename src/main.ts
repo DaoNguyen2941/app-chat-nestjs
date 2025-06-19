@@ -10,7 +10,7 @@ import { Queue } from 'bull';
 import { JOB_USER } from './modules/queue/queue.constants';
 import { QueueModule } from './modules/queue/queue.module';
 import { getQueueToken } from '@nestjs/bull';
-
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
 async function bootstrap() {
 
@@ -34,6 +34,16 @@ async function bootstrap() {
     forbidNonWhitelisted: true,
     transform: true,
   }));
+  const config = new DocumentBuilder()
+    .setTitle('Cats example')
+    .setDescription('The cats API description')
+    .setVersion('1.0')
+    .addTag('cats')
+    .build();
+    
+  const documentFactory = () => SwaggerModule.createDocument(app, config);
+  SwaggerModule.setup('api', app, documentFactory);
+
   await app.listen(PORT, () => {
     console.log(`app listening on port ${PORT} ❤️`)
   })

@@ -116,7 +116,7 @@ export class FriendService {
 
     async getFriendsList(userId: string): Promise<ListFriendDto[]> {
         try {
-            const friendData = await this.friendRepository.find({
+            const friendRelations = await this.friendRepository.find({
                 where: [
                     { sender: { id: userId }, status: 'Accepted' },
                     { receiver: { id: userId }, status: 'Accepted' },
@@ -127,49 +127,53 @@ export class FriendService {
                     status: true,
                     sender: {
                         id: true,
-                        account: true,
                         avatar: true,
                         name: true,
                         lastSeen: true,
                     },
                     receiver: {
                         id: true,
-                        account: true,
                         avatar: true,
                         name: true,
                         lastSeen: true,
-
                     },
                 },
             });
+            console.log(friendRelations);
+            
 
-            const friendList = await Promise.all(friendData.map(async (friend) => {
-                const { sender, receiver, ...rest } = friend;
-                const targetUser = sender.id === userId ? receiver : sender;
+            const friends = await Promise.all(
+                friendRelations.map(async (relation) => {
+                    const { sender, receiver, ...rest } = relation;
+                    const targetUser = sender.id === userId ? receiver : sender;
 
-                const [lastSeenFromSocket, userStatus] = await Promise.all([
-                    this.managerClientSocketService.getLastSeenClientSocket(targetUser.id),
-                    this.managerClientSocketService.UserStatus(targetUser.id),
-                ]);
+                    const [lastSeenFromSocket, userStatus] = await Promise.all([
+                        this.managerClientSocketService.getLastSeenClientSocket(targetUser.id),
+                        this.managerClientSocketService.UserStatus(targetUser.id),
+                    ]);
 
-                return {
-                    ...rest,
-                    receiver: targetUser,
-                    isOnline: userStatus === 'online' ? true : false,
-                    lastSeen: lastSeenFromSocket || targetUser.lastSeen,
-                };
-            }));
+                    return {
+                        ...rest,
+                        receiver: targetUser,
+                        isOnline: userStatus === 'online',
+                        lastSeen: lastSeenFromSocket || targetUser.lastSeen,
+                    };
+                })
+            );
 
-            return plainToInstance(ListFriendDto, friendList, {
+            return plainToInstance(ListFriendDto, friends, {
                 excludeExtraneousValues: true,
             });
+
         } catch (error) {
+            console.log('Lỗi khi lấy danh sách bạn bè:', error);
             throw new HttpException(
                 'Đã xảy ra lỗi không xác định',
                 HttpStatus.INTERNAL_SERVER_ERROR,
             );
         }
     }
+
 
 
     private async checkExistence(senderId: string, receiverId: string) {

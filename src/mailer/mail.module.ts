@@ -19,7 +19,7 @@ import { MailService } from './mail.service';
           },
         },
         defaults: {
-          from: `"No Reply" <${config.get<string>('mailer.from')}>`,
+          from: `"ViVuChat Support " <${config.get<string>('mailer.from')}>`,
         },
       }),
     }),

@@ -5,6 +5,8 @@ import {
     HttpStatus,
     InternalServerErrorException,
     BadRequestException,
+    Inject,
+    forwardRef
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
@@ -16,6 +18,8 @@ import { ChatDataDto } from '../dto/chat.dto';
 import { UserConversation } from '../entity/userConversations.entity';
 import { UserConversationService } from './userConversation.service';
 import { GroupInvitations } from '../entity/groupInvitations.entity';
+import { MessageService } from './message.service';
+import { Users } from 'src/modules/user/entity/user.entity';
 @Injectable()
 export class ChatGroupService {
     constructor(
@@ -24,6 +28,9 @@ export class ChatGroupService {
         private chatGroupRepository: Repository<ChatGroups>,
         private readonly userConversationService: UserConversationService,
         private readonly usersService: UserService,
+        @Inject(forwardRef(() => MessageService))
+        private readonly messageService: MessageService,
+
     ) { }
 
     async deleteGroup(groupId: string) {
@@ -151,25 +158,82 @@ export class ChatGroupService {
         });
     }
 
-    async addMemberToGroup(groupId: string, userId: string) {
-        const chatGroup = await this.chatGroupRepository.findOne({
-            where: { id: groupId },
-            relations: ['members'],
-        });
+ async addMemberToGroup(groupId: string, userId: string) {
+  try {
+    const chatGroup = await this.chatGroupRepository.findOne({
+      where: { id: groupId },
+      relations: ['members'],
+    });
 
-        if (!chatGroup) {
-            throw new NotFoundException('Nhóm chat không tồn tại');
+    if (!chatGroup) {
+      throw new NotFoundException('Nhóm chat không tồn tại');
+    }
+
+    const userData = await this.usersService.getUserDataById(userId);
+    if (!userData) {
+      throw new NotFoundException('Người dùng không tồn tại');
+    }
+
+    const alreadyMember = chatGroup.members.some((member) => member.id === userId);
+    if (alreadyMember) {
+      throw new BadRequestException('Người dùng đã là thành viên của nhóm');
+    }
+
+    chatGroup.members.push({ id: userData.id } as Users);
+
+    await this.chatGroupRepository.save(chatGroup);
+
+    return {
+      message: 'Thêm thành viên vào nhóm thành công',
+      userData,
+    };
+  } catch (error) {
+    // NestJS sẽ tự động ném lỗi HTTP nếu đây là instance của HttpException
+    if (error instanceof HttpException) {
+      throw error;
+    }
+
+    console.error('Lỗi khi thêm thành viên vào nhóm:', error);
+    throw new InternalServerErrorException('Đã xảy ra lỗi khi thêm thành viên vào nhóm');
+  }
+}
+
+
+    async getChatGroupById2(groupId: string, userId: string) {
+        try {
+            const group = await this.chatGroupRepository
+                .createQueryBuilder('cg')
+                .leftJoin('cg.manager', 'mg')
+                .leftJoin('cg.members', 'mb')
+                .leftJoin('cg.messages', 'msg')
+                .leftJoin('msg.author', 'a')
+                .where('cg.id = :groupId', { groupId })
+                .getOne();
+
+            if (!group) {
+                throw new NotFoundException('Không tìm thấy cuộc trò chuyện');
+            }
+            const isGroup = true
+            const startTime = await this.userConversationService.getStartTime(groupId, userId, isGroup);
+            const { messages, hasMore, nextCursor }
+                = await this.messageService.getMessagesByGroupId(groupId, startTime, 15)
+
+            return plainToInstance(ChatDataDto, {
+                ...group,
+                message: messages,
+                userId,
+                isGroup: true,
+                pagination: {
+                    hasMore,
+                    nextCursor,
+                },
+            }, {
+                excludeExtraneousValues: true,
+            });
+        } catch (error) {
+            console.error('Lỗi khi lấy dữ liệu cuộc trò chuyện:', error);
+            throw new InternalServerErrorException('Không thể lấy dữ liệu trò chuyện');
         }
-        const user = await this.usersService.getAllDataUserById(userId)
-        if (!user) {
-            throw new NotFoundException('Người dùng không tồn tại');
-        }
-        if (chatGroup.members.some(member => member.id === userId)) {
-            throw new BadRequestException('Người dùng đã là thành viên của nhóm');
-        }
-        chatGroup.members.push(user);
-        await this.chatGroupRepository.save(chatGroup);
-        return { message: 'Thêm thành viên vào nhóm thành công' };
     }
 
     async getChatGroupById(groupId: string, userId: string): Promise<ChatDataDto> {
@@ -180,7 +244,7 @@ export class ChatGroupService {
                 .createQueryBuilder("cg")
                 .leftJoinAndSelect("cg.manager", "manager")
                 .leftJoinAndSelect("cg.members", "mem")
-                .leftJoinAndSelect("cg.messages", "msg") // Lấy tất cả tin nhắn
+                .leftJoinAndSelect("cg.messages", "msg")
                 .leftJoinAndSelect("msg.author", "author")
                 .where("cg.id = :groupId", { groupId })
                 .select([
