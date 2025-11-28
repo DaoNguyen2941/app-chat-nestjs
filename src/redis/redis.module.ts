@@ -4,20 +4,17 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { RedisCacheService } from './services/redisCache.service';
 import { ManagerClientSocketService } from './services/managerClient.service';
 import { GatewaysModule } from 'src/gateways/gateway.module';
+import redisConfig from 'src/core/Configuration/config/redis.config';
 @Global()
 @Module({
   imports: [
     GatewaysModule,
     RedisModule.forRootAsync({
-      imports: [ConfigModule], // Import ConfigModule để lấy biến môi trường
+      inject: [ConfigService],
       useFactory: (configService: ConfigService) => ({
         type: 'single',
-        host: configService.get('redis.host'),
-        port: configService.get<number>('redis.port', 6379),
-        db: configService.get<number>('redis.db'),
+        url: `redis://${configService.get('redis.host')}:${configService.get('redis.port')}`,
       }),
-      inject: [ConfigService],
-      
     }),
   ],
   exports: [

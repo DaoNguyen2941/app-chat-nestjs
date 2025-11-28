@@ -1,12 +1,9 @@
 import {
      Entity,
-      Column,
       JoinColumn,
-      OneToOne,
       OneToMany,
       ManyToOne
     } from 'typeorm';
-import { Exclude } from "class-transformer";
 import { BaseEntity } from 'src/common/baseEntity';
 import { Users } from 'src/modules/user/entity/user.entity';
 import { Message } from 'src/modules/chat/entity/message.entity';

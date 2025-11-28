@@ -2,10 +2,8 @@
 import { 
     Column, 
     Entity, 
-    ManyToOne,
     JoinColumn,
     OneToOne,
-    CreateDateColumn
      } from 'typeorm';
   import { Users } from 'src/modules/user/entity/user.entity'; 
   import { BaseEntity } from 'src/common/baseEntity';
