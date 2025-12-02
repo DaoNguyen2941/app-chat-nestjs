@@ -38,6 +38,7 @@ import { Module } from '@nestjs/common';
         REDIS_HOST: Joi.string().required(),
         REDIS_PORT: Joi.number().required().default(6379),
         REDIS_DB: Joi.string(),
+        REDIS_PASSWORD: Joi.string().optional(),
         //aws-s3
         CLOUDFLARE_ACCESS_KEY_ID: Joi.string().required(),
         CLOUDFLARE_SECRET_ACCESS_KEY: Joi.string().required(),
