@@ -11,10 +11,10 @@ export default registerAs('redis', () => {
   const url =
     process.env.REDIS_URL ||
     (user
-      ? `redis://${user}:${password}@${host}:${port}/${db}`
+      ? `redis://${user}:${password}@${host}:${port}`
       : password
-      ? `redis://:${password}@${host}:${port}/${db}`
-      : `redis://${host}:${port}/${db}`);
+      ? `redis://:${password}@${host}:${port}`
+      : `redis://${host}:${port}`);
 
   return {
     host,

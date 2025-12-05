@@ -11,21 +11,10 @@ import { GatewaysModule } from 'src/gateways/gateway.module';
     GatewaysModule,
     RedisModule.forRootAsync({
       inject: [ConfigService],
-      useFactory: (config: ConfigService) => {
-        const host = config.get<string>('redis.host');
-        const port = config.get<number>('redis.port');
-        const password = config.get<string>('redis.password');
-        const db = config.get<number>('redis.db') ?? 0;
-
-        const url = password
-          ? `redis://:${password}@${host}:${port}/${db}`
-          : `redis://${host}:${port}/${db}`;
-
-        return {
-          type: 'single',
-          url,
-        };
-      },
+        useFactory: (config: ConfigService) => ({
+        type: 'single', // hoặc 'cluster'
+        url: `${config.get('redis.url')}`,
+      }),
     }),
   ],
   exports: [
