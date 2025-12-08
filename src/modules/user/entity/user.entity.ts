@@ -1,7 +1,5 @@
-import { Entity, Column, OneToOne, JoinColumn, OneToMany } from 'typeorm';
+import { Entity, Column, OneToMany } from 'typeorm';
 import { Exclude } from "class-transformer";
-import { Peer } from './peer.entity';
-import { Chat } from 'src/modules/chat/entity/chat.entity';
 import { UserConversation } from 'src/modules/chat/entity/userConversations.entity';
 import { BaseEntity } from 'src/common/baseEntity';
 import { GroupInvitations } from 'src/modules/chat/entity/groupInvitations.entity';
@@ -20,12 +18,6 @@ export class Users extends BaseEntity {
   @Column({ type: "varchar",  nullable: true})
   @Exclude()
   refresh_token: string | null;
-
-  @OneToOne(() => Peer, (peer) => peer.user, {
-    cascade: ['insert', 'remove', 'update'],
-  })
-  @JoinColumn()
-  peer: Peer;
 
   @Column({ type: "varchar", nullable: true, default: 'https://pub-5c96059ac5534e72b75bf2db6c189f0c.r2.dev/default-avatar.png'})
   avatar: string;

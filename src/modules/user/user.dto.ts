@@ -10,7 +10,6 @@ export class BasicUserDataDto {
   @IsString()
   @IsNotEmpty()
   @ApiProperty({ example: '12345', description: 'ID của người dùng' })
-
   id: string;
 
   @Expose()

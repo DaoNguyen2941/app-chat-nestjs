@@ -70,7 +70,6 @@ export class JWTDecodedResetPassword extends JWTSubPayload {
   exp: number;
 }
 
-
 export class JWTDecoded extends JWTPayload {
   @Expose()
   @IsNotEmpty()

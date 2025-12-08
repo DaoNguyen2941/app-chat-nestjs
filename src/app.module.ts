@@ -13,11 +13,12 @@ import { FriendModule } from './modules/friend/friend.module';
 import { JwtService } from '@nestjs/jwt';
 import { GatewaysModule } from './gateways/gateway.module';
 import { StorageModule } from './object-storage/storage.module';
-
+import { CustomRedisModule } from './redis/redis.module';
 @Module({
   imports: [
-    UseTypeOrmModule,
     UseConfigModule,
+    CustomRedisModule,
+    UseTypeOrmModule,
     PassportModule,
     AuthModule,
     UserModule,
@@ -25,7 +26,7 @@ import { StorageModule } from './object-storage/storage.module';
       global: true,
       secret: jwtConstants.secret,
       signOptions: { expiresIn: `${jwtConstants.expirationTimeDefault}s` },
-    }),
+    }), 
     ChatModule,
     FriendModule,
     GatewaysModule,

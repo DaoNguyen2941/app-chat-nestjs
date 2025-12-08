@@ -474,7 +474,9 @@ export class UserService {
                 excludeExtraneousValues: true,
             })
 
-        } catch (error) {
+        } catch (error) {            
+            console.log(error);
+            
             // Kiểm tra nếu lỗi là do truy vấn cơ sở dữ liệu
             if (error instanceof QueryFailedError) {
                 throw new HttpException(

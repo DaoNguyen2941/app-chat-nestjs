@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { config as dotenvConfig } from 'dotenv';
 dotenvConfig({ path: '.env' });
 const configService = new ConfigService();
+
 const dataSource = new DataSource({
   type: 'mysql',  
   host: configService.get<string>('DATABASE_HOST'),
@@ -14,9 +15,9 @@ const dataSource = new DataSource({
     "dist/**/*.entity{.ts,.js}",
     "dist/**/entity/*.entity{.ts,.js}",
   ],
-  migrations: [],
+  migrations: ['**/core/database/migrations/*{.ts,.js}'],
   migrationsRun: false,
-  synchronize: false,  // Chỉ đặt thành true trong môi trường phát triển,nếu dùng migration thì không để true
+  synchronize: false, 
 });
 
 export default dataSource;
